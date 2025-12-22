@@ -144,3 +144,26 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Happy Learning! 🎉**
+
+## 🐳 Docker Deployment
+
+Run the entire stack with Docker:
+
+```bash
+# Clone and navigate
+git clone https://github.com/DharunKumar-G/Smart-learning-path-generator.git
+cd Smart-learning-path-generator
+
+# Copy environment template
+cp .env.example .env
+# Edit .env and add your OPENAI_API_KEY
+
+# Start all services
+docker-compose up --build
+```
+
+This will start:
+- **PostgreSQL** database on port 5432
+- **Express API** server on port 3001
+- **React frontend** on port 80
+
