@@ -1,0 +1,243 @@
+import OpenAI from 'openai';
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// Types for roadmap generation
+interface RoadmapInput {
+  currentSkills: string;
+  targetGoal: string;
+  hoursPerWeek: number;
+  totalWeeks: number;
+}
+
+interface Topic {
+  name: string;
+  description: string;
+  estimatedHours: number;
+  whyThisFirst: string;
+  searchStrings: string[];
+}
+
+interface Week {
+  title: string;
+  description: string;
+  goals: string;
+  topics: Topic[];
+}
+
+interface GeneratedRoadmap {
+  title: string;
+  description: string;
+  weeks: Week[];
+}
+
+// Generate a personalized learning roadmap using AI
+export async function generateRoadmap(input: RoadmapInput): Promise<GeneratedRoadmap> {
+  const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap based on the following inputs:
+
+**Current Skills:** ${input.currentSkills}
+**Target Goal:** ${input.targetGoal}
+**Available Time:** ${input.hoursPerWeek} hours per week
+**Duration:** ${input.totalWeeks} weeks
+
+Generate a structured learning path that:
+1. Builds on existing knowledge progressively
+2. Prioritizes foundational concepts before advanced topics
+3. Includes practical projects and exercises
+4. Provides reasoning for topic ordering (prerequisites)
+5. Includes search strings for finding quality resources
+
+Return a JSON object with this exact structure:
+{
+  "title": "Descriptive title for the learning path",
+  "description": "Brief overview of what the learner will achieve",
+  "weeks": [
+    {
+      "title": "Week title",
+      "description": "What this week covers",
+      "goals": "What the learner should be able to do after this week",
+      "topics": [
+        {
+          "name": "Topic name",
+          "description": "Brief description of what to learn",
+          "estimatedHours": 2.5,
+          "whyThisFirst": "Explanation of why this topic comes at this point in the curriculum",
+          "searchStrings": ["search query 1", "search query 2", "search query 3"]
+        }
+      ]
+    }
+  ]
+}
+
+Make sure:
+- Total hours across all topics roughly equals ${input.hoursPerWeek * input.totalWeeks} hours
+- Each week has ${Math.ceil(input.hoursPerWeek / 2)}-${Math.ceil(input.hoursPerWeek / 1.5)} topics
+- Search strings are specific and would yield high-quality educational resources
+- The progression is logical and builds upon previous weeks
+
+Return ONLY valid JSON, no additional text.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a learning path expert. Always respond with valid JSON only, no markdown or additional text.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 4000,
+      response_format: { type: 'json_object' }
+    });
+
+    const content = response.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('No response from OpenAI');
+    }
+
+    const roadmap = JSON.parse(content) as GeneratedRoadmap;
+    
+    // Validate the structure
+    if (!roadmap.title || !roadmap.weeks || !Array.isArray(roadmap.weeks)) {
+      throw new Error('Invalid roadmap structure from AI');
+    }
+
+    return roadmap;
+  } catch (error) {
+    console.error('OpenAI generation error:', error);
+    throw new Error('Failed to generate roadmap. Please try again.');
+  }
+}
+
+// Generate quiz questions for a week's topics
+export async function generateQuiz(topics: { name: string; description: string }[], weekTitle: string): Promise<{
+  questions: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+    explanation: string;
+  }[];
+}> {
+  const topicList = topics.map(t => `- ${t.name}: ${t.description}`).join('\n');
+  
+  const prompt = `Generate a quiz with 5 multiple-choice questions to test understanding of these topics from "${weekTitle}":
+
+${topicList}
+
+Return a JSON object with this exact structure:
+{
+  "questions": [
+    {
+      "question": "The question text",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctIndex": 0,
+      "explanation": "Brief explanation of why this is the correct answer"
+    }
+  ]
+}
+
+Make questions:
+- Test conceptual understanding, not memorization
+- Include a mix of difficulty levels
+- Have plausible but clearly wrong distractors
+- Cover different topics from the week
+
+Return ONLY valid JSON, no additional text.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert educator. Generate high-quality quiz questions. Always respond with valid JSON only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000,
+      response_format: { type: 'json_object' }
+    });
+
+    const content = response.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('No response from OpenAI');
+    }
+
+    return JSON.parse(content);
+  } catch (error) {
+    console.error('Quiz generation error:', error);
+    throw new Error('Failed to generate quiz. Please try again.');
+  }
+}
+
+// Search for learning resources using AI
+export async function suggestResources(topic: string, searchStrings: string[]): Promise<{
+  resources: {
+    type: 'video' | 'article' | 'course' | 'documentation' | 'tutorial';
+    title: string;
+    description: string;
+    searchQuery: string;
+  }[];
+}> {
+  const prompt = `For the topic "${topic}", suggest 5 learning resources that a student could find using these search terms:
+${searchStrings.map(s => `- "${s}"`).join('\n')}
+
+Return a JSON object with this structure:
+{
+  "resources": [
+    {
+      "type": "video|article|course|documentation|tutorial",
+      "title": "Suggested resource title",
+      "description": "Brief description of what the resource covers",
+      "searchQuery": "Optimized search query to find this resource"
+    }
+  ]
+}
+
+Include a variety of resource types (videos, articles, documentation, tutorials).
+Return ONLY valid JSON, no additional text.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a learning resource curator. Suggest high-quality, accessible learning materials. Always respond with valid JSON only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
+      response_format: { type: 'json_object' }
+    });
+
+    const content = response.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('No response from OpenAI');
+    }
+
+    return JSON.parse(content);
+  } catch (error) {
+    console.error('Resource suggestion error:', error);
+    throw new Error('Failed to suggest resources. Please try again.');
+  }
+}
