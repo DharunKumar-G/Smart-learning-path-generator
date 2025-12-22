@@ -74,3 +74,21 @@ This document tracks my learning progress while building the Smart Learning Path
 ---
 
 *More entries will be added as development progresses...*
+
+## Hour 5: Error Handling & User Feedback
+**Date:** December 22, 2025
+
+### What I Learned
+- **Error boundaries** in React - catching errors at component level
+- **User feedback patterns** - showing clear error messages with retry options
+- **Graceful degradation** - app remains usable even when parts fail
+- **Toast notifications** vs inline alerts - when to use each
+
+### Key Concepts Explored
+- Error handling best practices in React
+- UX patterns for error states
+- Retry mechanisms for failed requests
+
+---
+
+*More entries will be added as development progresses...*
