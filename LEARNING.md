@@ -48,4 +48,96 @@ This document tracks my learnings and progress while building the Smart Learning
 
 ---
 
+## Hour 2: Complete Backend + React Frontend Setup
+**Date:** December 22, 2025  
+**Time:** 10:45 AM - 11:45 AM
+
+### What I Did
+- Built complete Express.js backend with TypeScript
+- Created OpenAI service with custom prompts for roadmap & quiz generation
+- Implemented Quiz routes with generate, submit, reset functionality
+- Set up React + Vite + TypeScript frontend from scratch
+- Configured Chakra UI with custom dark theme
+- Built Zustand stores for auth and roadmap state management
+- Created all API service layers (auth, roadmap, quiz)
+- Built 6 complete pages: Home, Login, Register, Dashboard, CreateRoadmap, Roadmap
+
+### Key Architecture Decisions
+
+1. **Zustand over Redux** - Simpler API, less boilerplate, perfect for this app size
+
+2. **Custom Theme Design:**
+   - Dark mode by default (easier on eyes for learning)
+   - Brand colors: Blue primary, Green accent
+   - Glass morphism effects for modern look
+
+3. **Service Layer Pattern:**
+   - Axios instance with interceptors for auth tokens
+   - Automatic 401 handling - redirects to login
+   - Type-safe API responses using TypeScript generics
+
+### Project Structure Created
+```
+/client
+├── src/
+│   ├── main.tsx          # App entry with providers
+│   ├── App.tsx           # Routes & protected route logic
+│   ├── theme.ts          # Chakra UI custom theme
+│   ├── index.css         # Global styles & animations
+│   ├── types/            # TypeScript interfaces
+│   ├── stores/           # Zustand state management
+│   ├── services/         # API layer (axios)
+│   ├── components/       # Reusable components
+│   └── pages/            # Route pages
+```
+
+### Challenges Faced
+- No npm/node in the dev environment - had to manually create all React files
+- Designing the roadmap page to handle nested accordion with progress tracking
+
+### What I Learned
+- **Zustand persist middleware** - Auto-saves to localStorage, great for auth
+- **Chakra UI theming** - extendTheme is powerful for customization
+- **Protected routes pattern** - Simple wrapper components for auth checks
+- **Axios interceptors** - Request/response middleware for tokens and error handling
+
+### Code Patterns I'm Proud Of
+
+**Zustand Store with Persist:**
+```typescript
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      setAuth: (user, token) => set({ user, token, isAuthenticated: true }),
+      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+    }),
+    { name: 'auth-storage' }
+  )
+);
+```
+
+**Protected Route Component:**
+```typescript
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuthStore();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+```
+
+### Resources Used
+- [Zustand Documentation](https://zustand-demo.pmnd.rs/)
+- [Chakra UI Theme Customization](https://chakra-ui.com/docs/styled-system/customize-theme)
+- [React Router v6 Auth](https://reactrouter.com/en/main/start/tutorial)
+- [Framer Motion](https://www.framer.com/motion/)
+
+### Next Hour Goals
+- Install dependencies and test the full app
+- Connect frontend to backend
+- Test the AI roadmap generation flow
+- Add loading states and error handling
+
+---
+
 *More entries will be added as development progresses...*
