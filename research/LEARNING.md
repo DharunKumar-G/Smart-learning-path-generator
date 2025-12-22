@@ -38,3 +38,39 @@ This document tracks my learning progress while building the Smart Learning Path
 ---
 
 *More entries will be added as development progresses...*
+
+## Hour 3: Docker & Containerization
+**Date:** December 22, 2025
+
+### What I Learned
+- **Docker multi-stage builds** - separate build and runtime stages for smaller images
+- **docker-compose** - orchestrating multiple containers (db, api, frontend)
+- **Environment variables** - keeping secrets out of code with .env files
+- **Container networking** - how services communicate within Docker network
+
+### Key Concepts Explored
+- Containerization vs virtualization
+- Production vs development Docker configurations
+- Health checks for container orchestration
+- Volume mounting for persistent data
+
+---
+
+## Hour 4: AI Prompt Engineering
+**Date:** December 22, 2025
+
+### What I Learned
+- **System vs User prompts** - system sets role, user contains the request
+- **Reducing hallucinations** - be specific, use structured JSON output
+- **Temperature settings** - low for consistency, high for creativity
+- **Few-shot examples** - showing examples improves output quality
+
+### Key Concepts Explored
+- Prompt design patterns
+- JSON mode for guaranteed structured output
+- Chain of thought reasoning
+- Validation criteria in prompts
+
+---
+
+*More entries will be added as development progresses...*
