@@ -1,0 +1,65 @@
+# Docker Compose for Smart Learning Path Generator
+# Full stack: PostgreSQL + Express API + React Frontend
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: learnpath-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-learnpath}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-learnpath123}
+      POSTGRES_DB: ${POSTGRES_DB:-learnpath}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-learnpath}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Express Backend API
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: learnpath-server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-learnpath}:${POSTGRES_PASSWORD:-learnpath123}@db:5432/${POSTGRES_DB:-learnpath}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma migrate deploy && npm start"
+
+  # React Frontend (Nginx)
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: learnpath-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: learnpath-network

@@ -35,3 +35,11 @@ server/prisma/*.db-journal
 # Misc
 *.tsbuildinfo
 .eslintcache
+
+# WIP - Files to reveal in future commits
+client/Dockerfile
+client/Dockerfile.dev
+client/nginx.conf
+docker-compose.dev.yml
+server/Dockerfile.dev
+start.sh
