@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import CreateRoadmapPage from './pages/CreateRoadmapPage';
 import RoadmapPage from './pages/RoadmapPage';
+import QuizPage from './pages/QuizPage';
 
 // Protected route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -75,6 +76,14 @@ function App() {
           element={
             <ProtectedRoute>
               <RoadmapPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quiz/:quizId"
+          element={
+            <ProtectedRoute>
+              <QuizPage />
             </ProtectedRoute>
           }
         />

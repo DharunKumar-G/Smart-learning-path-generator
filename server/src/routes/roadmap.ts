@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma.js';
-import { generateRoadmap } from '../services/openai.js';
+import { generateRoadmap } from '../services/gemini.js';
 
 const router = Router();
 

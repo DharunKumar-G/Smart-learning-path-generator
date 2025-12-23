@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -24,15 +24,28 @@ import {
   Wrap,
   WrapItem,
   Tag,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  useDisclosure,
 } from '@chakra-ui/react';
-import { FaClock, FaSearch, FaQuestionCircle, FaCheckCircle } from 'react-icons/fa';
+import { FaClock, FaSearch, FaQuestionCircle, FaCheckCircle, FaDownload, FaFilePdf, FaFileCode, FaFileAlt } from 'react-icons/fa';
 import { useRoadmapStore } from '../stores/roadmapStore';
 import { getRoadmap, toggleTopicComplete } from '../services/roadmap';
+import { generateQuiz } from '../services/quiz';
+import TopicDetailModal from '../components/TopicDetailModal';
+import { exportToPDF, exportToJSON, exportToMarkdown } from '../utils/exportRoadmap';
+import type { Topic } from '../types';
 
 const RoadmapPage = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { currentRoadmap, setCurrentRoadmap, updateTopicCompletion, isLoading, setLoading } = useRoadmapStore();
   const [updatingTopic, setUpdatingTopic] = useState<string | null>(null);
+  const [generatingQuiz, setGeneratingQuiz] = useState<string | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
   useEffect(() => {
@@ -79,6 +92,43 @@ const RoadmapPage = () => {
     } finally {
       setUpdatingTopic(null);
     }
+  };
+
+  const handleTopicClick = (topic: Topic) => {
+    setSelectedTopic(topic);
+    onOpen();
+  };
+
+  const handleMarkTopicComplete = async (topicId: string) => {
+    await handleTopicToggle(topicId, false);
+    onClose();
+  };
+
+  const handleGenerateQuiz = async (weekId: string) => {
+    setGeneratingQuiz(weekId);
+    try {
+      const data = await generateQuiz(weekId);
+      toast({
+        title: 'Quiz generated!',
+        description: 'Redirecting to quiz...',
+        status: 'success',
+        duration: 2000,
+      });
+      navigate(`/quiz/${data.quiz.id}`);
+    } catch (error) {
+      toast({
+        title: 'Failed to generate quiz',
+        description: 'Please try again later.',
+        status: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setGeneratingQuiz(null);
+    }
+  };
+
+  const handleTakeExistingQuiz = (quizId: string) => {
+    navigate(`/quiz/${quizId}`);
   };
 
   // Calculate overall progress
@@ -142,15 +192,38 @@ const RoadmapPage = () => {
                   <Heading size="lg">{currentRoadmap.title}</Heading>
                   <Text color="gray.400">{currentRoadmap.description}</Text>
                 </VStack>
-                <Badge
-                  colorScheme={progress === 100 ? 'green' : 'blue'}
-                  fontSize="md"
-                  px={3}
-                  py={1}
-                  borderRadius="full"
-                >
-                  {progress === 100 ? '✓ Completed' : `${progress}% Complete`}
-                </Badge>
+                <HStack spacing={3}>
+                  <Menu>
+                    <MenuButton
+                      as={Button}
+                      leftIcon={<FaDownload />}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Export
+                    </MenuButton>
+                    <MenuList>
+                      <MenuItem icon={<FaFilePdf />} onClick={() => exportToPDF(currentRoadmap)}>
+                        Export as PDF
+                      </MenuItem>
+                      <MenuItem icon={<FaFileCode />} onClick={() => exportToJSON(currentRoadmap)}>
+                        Export as JSON
+                      </MenuItem>
+                      <MenuItem icon={<FaFileAlt />} onClick={() => exportToMarkdown(currentRoadmap)}>
+                        Export as Markdown
+                      </MenuItem>
+                    </MenuList>
+                  </Menu>
+                  <Badge
+                    colorScheme={progress === 100 ? 'green' : 'blue'}
+                    fontSize="md"
+                    px={3}
+                    py={1}
+                    borderRadius="full"
+                  >
+                    {progress === 100 ? '✓ Completed' : `${progress}% Complete`}
+                  </Badge>
+                </HStack>
               </HStack>
 
               <Box>
@@ -255,12 +328,19 @@ const RoadmapPage = () => {
                             borderColor={topic.isCompleted ? 'green.700' : 'whiteAlpha.100'}
                             opacity={updatingTopic === topic.id ? 0.7 : 1}
                             transition="all 0.2s"
+                            cursor="pointer"
+                            _hover={{ borderColor: 'brand.400' }}
+                            onClick={() => handleTopicClick(topic)}
                           >
                             <HStack justify="space-between" align="start" spacing={4}>
                               <HStack align="start" spacing={3} flex="1">
                                 <Checkbox
                                   isChecked={topic.isCompleted}
-                                  onChange={() => handleTopicToggle(topic.id, topic.isCompleted)}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    handleTopicToggle(topic.id, topic.isCompleted);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
                                   colorScheme="green"
                                   size="lg"
                                   mt={1}
@@ -328,16 +408,32 @@ const RoadmapPage = () => {
                       </VStack>
 
                       {/* Quiz Button */}
-                      <Button
-                        variant="outline"
-                        colorScheme="purple"
-                        leftIcon={<FaQuestionCircle />}
-                        isDisabled={weekProgress < 100}
-                      >
-                        {weekProgress < 100
-                          ? 'Complete all topics to unlock quiz'
-                          : 'Take Week Quiz'}
-                      </Button>
+                      {week.quizzes && week.quizzes.length > 0 ? (
+                        <Button
+                          variant="outline"
+                          colorScheme="purple"
+                          leftIcon={<FaQuestionCircle />}
+                          onClick={() => handleTakeExistingQuiz(week.quizzes[0].id)}
+                        >
+                          {week.quizzes[0].score !== null
+                            ? `Review Quiz (${week.quizzes[0].score}%)`
+                            : 'Continue Quiz'}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          colorScheme="purple"
+                          leftIcon={<FaQuestionCircle />}
+                          isDisabled={weekProgress < 100}
+                          isLoading={generatingQuiz === week.id}
+                          loadingText="Generating Quiz..."
+                          onClick={() => handleGenerateQuiz(week.id)}
+                        >
+                          {weekProgress < 100
+                            ? 'Complete all topics to unlock quiz'
+                            : 'Take Week Quiz'}
+                        </Button>
+                      )}
                     </VStack>
                   </AccordionPanel>
                 </AccordionItem>
@@ -346,6 +442,14 @@ const RoadmapPage = () => {
           </Accordion>
         </VStack>
       </Container>
+
+      {/* Topic Detail Modal */}
+      <TopicDetailModal
+        topic={selectedTopic}
+        isOpen={isOpen}
+        onClose={onClose}
+        onMarkComplete={handleMarkTopicComplete}
+      />
     </Box>
   );
 };
