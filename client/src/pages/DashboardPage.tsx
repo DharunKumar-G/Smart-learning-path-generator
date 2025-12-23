@@ -32,12 +32,14 @@ import {
   Tooltip,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FaPlus, FaRoad, FaClock, FaCalendarWeek, FaTrash, FaSearch } from 'react-icons/fa';
+import { FaPlus, FaRoad, FaClock, FaCalendarWeek, FaTrash, FaSearch, FaSort } from 'react-icons/fa';
 import { useRoadmapStore } from '../stores/roadmapStore';
+import { useAuthStore } from '../stores/authStore';
 import { getRoadmaps, deleteRoadmap } from '../services/roadmap';
 
 const DashboardPage = () => {
   const { roadmaps, isLoading, setRoadmaps, setLoading } = useRoadmapStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const fetchRoadmaps = async () => {
@@ -99,6 +101,7 @@ const DashboardPage = () => {
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'in-progress' | 'completed'>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'progress' | 'name'>('newest');
 
   // Calculate progress for a roadmap
   const calculateProgress = (roadmap: typeof roadmaps[0]) => {
@@ -115,7 +118,7 @@ const DashboardPage = () => {
 
   // Filter roadmaps based on search and status
   const filteredRoadmaps = useMemo(() => {
-    return roadmaps.filter((roadmap) => {
+    let result = roadmaps.filter((roadmap) => {
       const matchesSearch = roadmap.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         roadmap.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         roadmap.targetGoal.toLowerCase().includes(searchQuery.toLowerCase());
@@ -127,7 +130,25 @@ const DashboardPage = () => {
       
       return matchesSearch && matchesStatus;
     });
-  }, [roadmaps, searchQuery, statusFilter]);
+
+    // Sort results
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case 'progress':
+          return calculateProgress(b) - calculateProgress(a);
+        case 'name':
+          return a.title.localeCompare(b.title);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [roadmaps, searchQuery, statusFilter, sortBy]);
 
   if (isLoading) {
     return (
@@ -144,9 +165,14 @@ const DashboardPage = () => {
           {/* Header */}
           <HStack justify="space-between" align="center" wrap="wrap" gap={4}>
             <VStack align="start" spacing={1}>
-              <Heading size="lg">My Learning Paths</Heading>
+              <Heading size="lg">
+                {user?.name ? `Welcome back, ${user.name.split(' ')[0]}!` : 'My Learning Paths'}
+              </Heading>
               <Text color="gray.400">
-                Track your progress and continue learning
+                {roadmaps.length === 0 
+                  ? 'Start your learning journey today'
+                  : `You have ${roadmaps.length} learning path${roadmaps.length !== 1 ? 's' : ''} • ${roadmaps.filter(r => calculateProgress(r) === 100).length} completed`
+                }
               </Text>
             </VStack>
             <Button
@@ -186,6 +212,20 @@ const DashboardPage = () => {
                 <option value="all">All Status</option>
                 <option value="in-progress">In Progress</option>
                 <option value="completed">Completed</option>
+              </Select>
+              <Select
+                maxW="150px"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                bg="whiteAlpha.50"
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+                icon={<FaSort />}
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="progress">By Progress</option>
+                <option value="name">By Name</option>
               </Select>
               {(searchQuery || statusFilter !== 'all') && (
                 <Text fontSize="sm" color="gray.400">
