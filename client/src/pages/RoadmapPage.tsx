@@ -33,7 +33,7 @@ import {
   SkeletonText,
   SkeletonCircle,
 } from '@chakra-ui/react';
-import { FaClock, FaSearch, FaQuestionCircle, FaCheckCircle, FaDownload, FaFilePdf, FaFileCode, FaFileAlt } from 'react-icons/fa';
+import { FaClock, FaSearch, FaQuestionCircle, FaCheckCircle, FaDownload, FaFilePdf, FaFileCode, FaFileAlt, FaArrowLeft, FaHourglass } from 'react-icons/fa';
 import { useRoadmapStore } from '../stores/roadmapStore';
 import { getRoadmap, toggleTopicComplete } from '../services/roadmap';
 import { generateQuiz } from '../services/quiz';
@@ -156,6 +156,16 @@ const RoadmapPage = () => {
     return week.topics.length > 0 ? Math.round((completed / week.topics.length) * 100) : 0;
   };
 
+  // Calculate remaining hours
+  const calculateRemainingHours = () => {
+    if (!currentRoadmap) return 0;
+    return currentRoadmap.weeks.reduce((total, week) => {
+      return total + week.topics
+        .filter((t) => !t.isCompleted)
+        .reduce((sum, t) => sum + t.estimatedHours, 0);
+    }, 0);
+  };
+
   if (isLoading) {
     return (
       <Box py={8}>
@@ -228,6 +238,17 @@ const RoadmapPage = () => {
     <Box py={8}>
       <Container maxW="container.xl">
         <VStack spacing={8} align="stretch">
+          {/* Back Button */}
+          <Button
+            leftIcon={<FaArrowLeft />}
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/dashboard')}
+            alignSelf="flex-start"
+          >
+            Back to Dashboard
+          </Button>
+
           {/* Header */}
           <Box
             p={6}
@@ -241,6 +262,16 @@ const RoadmapPage = () => {
                 <VStack align="start" spacing={2}>
                   <Heading size="lg">{currentRoadmap.title}</Heading>
                   <Text color="gray.400">{currentRoadmap.description}</Text>
+                  <HStack spacing={4} color="gray.500" fontSize="sm">
+                    <HStack>
+                      <Icon as={FaHourglass} />
+                      <Text>{calculateRemainingHours().toFixed(1)} hours remaining</Text>
+                    </HStack>
+                    <HStack>
+                      <Icon as={FaClock} />
+                      <Text>{currentRoadmap.hoursPerWeek}h/week • {currentRoadmap.totalWeeks} weeks</Text>
+                    </HStack>
+                  </HStack>
                 </VStack>
                 <HStack spacing={3}>
                   <Menu>
@@ -304,6 +335,27 @@ const RoadmapPage = () => {
               </Box>
             </VStack>
           </Box>
+
+          {/* Completion Celebration Banner */}
+          {progress === 100 && (
+            <Box
+              p={6}
+              bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+              borderRadius="xl"
+              textAlign="center"
+            >
+              <VStack spacing={3}>
+                <Text fontSize="4xl">🎉</Text>
+                <Heading size="md" color="white">
+                  Congratulations! You've completed this learning path!
+                </Heading>
+                <Text color="whiteAlpha.800">
+                  You've mastered all {currentRoadmap.weeks.reduce((acc, w) => acc + w.topics.length, 0)} topics. 
+                  Keep learning and growing!
+                </Text>
+              </VStack>
+            </Box>
+          )}
 
           {/* Weeks Accordion */}
           <Accordion allowMultiple defaultIndex={[0]}>
