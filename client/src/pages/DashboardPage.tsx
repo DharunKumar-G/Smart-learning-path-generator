@@ -30,9 +30,13 @@ import {
   InputLeftElement,
   Select,
   Tooltip,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FaPlus, FaRoad, FaClock, FaCalendarWeek, FaTrash, FaSearch, FaSort } from 'react-icons/fa';
+import { FaPlus, FaRoad, FaClock, FaCalendarWeek, FaTrash, FaSearch, FaSort, FaFire, FaCheckCircle, FaBook, FaTrophy } from 'react-icons/fa';
 import { useRoadmapStore } from '../stores/roadmapStore';
 import { useAuthStore } from '../stores/authStore';
 import { getRoadmaps, deleteRoadmap } from '../services/roadmap';
@@ -185,6 +189,60 @@ const DashboardPage = () => {
             </Button>
           </HStack>
 
+          {/* Quick Stats */}
+          {roadmaps.length > 0 && (
+            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+              <Card bg="whiteAlpha.50" border="1px solid" borderColor="whiteAlpha.100">
+                <CardBody py={4}>
+                  <HStack spacing={3}>
+                    <Icon as={FaBook} boxSize={6} color="blue.400" />
+                    <Stat size="sm">
+                      <StatLabel color="gray.400">Total Paths</StatLabel>
+                      <StatNumber>{roadmaps.length}</StatNumber>
+                    </Stat>
+                  </HStack>
+                </CardBody>
+              </Card>
+              <Card bg="whiteAlpha.50" border="1px solid" borderColor="whiteAlpha.100">
+                <CardBody py={4}>
+                  <HStack spacing={3}>
+                    <Icon as={FaCheckCircle} boxSize={6} color="green.400" />
+                    <Stat size="sm">
+                      <StatLabel color="gray.400">Topics Done</StatLabel>
+                      <StatNumber>
+                        {roadmaps.reduce((acc, r) => acc + r.weeks.reduce((a, w) => a + w.topics.filter(t => t.isCompleted).length, 0), 0)}
+                      </StatNumber>
+                    </Stat>
+                  </HStack>
+                </CardBody>
+              </Card>
+              <Card bg="whiteAlpha.50" border="1px solid" borderColor="whiteAlpha.100">
+                <CardBody py={4}>
+                  <HStack spacing={3}>
+                    <Icon as={FaClock} boxSize={6} color="purple.400" />
+                    <Stat size="sm">
+                      <StatLabel color="gray.400">Hours Learned</StatLabel>
+                      <StatNumber>
+                        {roadmaps.reduce((acc, r) => acc + r.weeks.reduce((a, w) => a + w.topics.filter(t => t.isCompleted).reduce((h, t) => h + t.estimatedHours, 0), 0), 0).toFixed(0)}
+                      </StatNumber>
+                    </Stat>
+                  </HStack>
+                </CardBody>
+              </Card>
+              <Card bg="whiteAlpha.50" border="1px solid" borderColor="whiteAlpha.100">
+                <CardBody py={4}>
+                  <HStack spacing={3}>
+                    <Icon as={FaTrophy} boxSize={6} color="yellow.400" />
+                    <Stat size="sm">
+                      <StatLabel color="gray.400">Completed</StatLabel>
+                      <StatNumber>{roadmaps.filter(r => calculateProgress(r) === 100).length}</StatNumber>
+                    </Stat>
+                  </HStack>
+                </CardBody>
+              </Card>
+            </SimpleGrid>
+          )}
+
           {/* Search and Filter */}
           {roadmaps.length > 0 && (
             <HStack spacing={4} wrap="wrap">
@@ -289,6 +347,24 @@ const DashboardPage = () => {
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
               {filteredRoadmaps.map((roadmap) => {
                 const progress = calculateProgress(roadmap);
+                // Get the most recent activity (last completed topic)
+                const lastActivity = roadmap.weeks
+                  .flatMap(w => w.topics)
+                  .filter(t => t.completedAt)
+                  .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())[0];
+                
+                const getTimeAgo = (date: string) => {
+                  const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+                  if (seconds < 60) return 'just now';
+                  const minutes = Math.floor(seconds / 60);
+                  if (minutes < 60) return `${minutes}m ago`;
+                  const hours = Math.floor(minutes / 60);
+                  if (hours < 24) return `${hours}h ago`;
+                  const days = Math.floor(hours / 24);
+                  if (days < 7) return `${days}d ago`;
+                  return new Date(date).toLocaleDateString();
+                };
+                
                 return (
                   <Card
                     key={roadmap.id}
@@ -349,6 +425,13 @@ const DashboardPage = () => {
                             <Text>{roadmap.hoursPerWeek}h/week</Text>
                           </HStack>
                         </HStack>
+
+                        {/* Last Activity */}
+                        {lastActivity && (
+                          <Text fontSize="xs" color="gray.500">
+                            🔥 Last activity: {getTimeAgo(lastActivity.completedAt!)}
+                          </Text>
+                        )}
 
                         <Box>
                           <HStack justify="space-between" mb={2}>
