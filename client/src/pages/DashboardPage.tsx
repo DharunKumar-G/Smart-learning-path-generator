@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Box,
   Container,
@@ -16,11 +16,20 @@ import {
   Spinner,
   Center,
   Icon,
+  IconButton,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  useDisclosure,
+  useToast,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FaPlus, FaRoad, FaClock, FaCalendarWeek } from 'react-icons/fa';
+import { FaPlus, FaRoad, FaClock, FaCalendarWeek, FaTrash } from 'react-icons/fa';
 import { useRoadmapStore } from '../stores/roadmapStore';
-import { getRoadmaps } from '../services/roadmap';
+import { getRoadmaps, deleteRoadmap } from '../services/roadmap';
 
 const DashboardPage = () => {
   const { roadmaps, isLoading, setRoadmaps, setLoading } = useRoadmapStore();
@@ -40,6 +49,47 @@ const DashboardPage = () => {
 
     fetchRoadmaps();
   }, [setRoadmaps, setLoading]);
+
+  // Delete confirmation dialog
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const [roadmapToDelete, setRoadmapToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const toast = useToast();
+
+  const handleDeleteClick = (roadmapId: string) => {
+    setRoadmapToDelete(roadmapId);
+    onOpen();
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!roadmapToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteRoadmap(roadmapToDelete);
+      setRoadmaps(roadmaps.filter((r) => r.id !== roadmapToDelete));
+      toast({
+        title: 'Roadmap deleted',
+        description: 'Your learning path has been removed.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Failed to delete',
+        description: 'Something went wrong. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsDeleting(false);
+      setRoadmapToDelete(null);
+      onClose();
+    }
+  };
 
   // Calculate progress for a roadmap
   const calculateProgress = (roadmap: typeof roadmaps[0]) => {
@@ -139,9 +189,22 @@ const DashboardPage = () => {
                           >
                             {progress === 100 ? 'Completed' : 'In Progress'}
                           </Badge>
-                          <Text fontSize="sm" color="gray.400">
-                            {new Date(roadmap.createdAt).toLocaleDateString()}
-                          </Text>
+                          <HStack spacing={2}>
+                            <Text fontSize="sm" color="gray.400">
+                              {new Date(roadmap.createdAt).toLocaleDateString()}
+                            </Text>
+                            <IconButton
+                              aria-label="Delete roadmap"
+                              icon={<FaTrash />}
+                              size="xs"
+                              variant="ghost"
+                              colorScheme="red"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDeleteClick(roadmap.id);
+                              }}
+                            />
+                          </HStack>
                         </HStack>
 
                         <Heading size="md" noOfLines={2}>
@@ -199,6 +262,40 @@ const DashboardPage = () => {
             </SimpleGrid>
           )}
         </VStack>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog
+          isOpen={isOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={onClose}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                Delete Learning Path
+              </AlertDialogHeader>
+
+              <AlertDialogBody>
+                Are you sure you want to delete this learning path? This action cannot be undone.
+                All your progress will be lost.
+              </AlertDialogBody>
+
+              <AlertDialogFooter>
+                <Button ref={cancelRef} onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  colorScheme="red"
+                  onClick={handleDeleteConfirm}
+                  ml={3}
+                  isLoading={isDeleting}
+                >
+                  Delete
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
       </Container>
     </Box>
   );

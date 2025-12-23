@@ -1,3 +1,4 @@
+import { useEffect, useCallback } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -17,10 +18,13 @@ import {
   Icon,
   Checkbox,
   useColorModeValue,
+  useToast,
   Wrap,
   WrapItem,
+  IconButton,
+  Tooltip,
 } from '@chakra-ui/react';
-import { FaClock, FaSearch, FaYoutube, FaGoogle, FaCheckCircle, FaLightbulb } from 'react-icons/fa';
+import { FaClock, FaSearch, FaYoutube, FaGoogle, FaCheckCircle, FaLightbulb, FaCopy } from 'react-icons/fa';
 import type { Topic } from '../types';
 
 interface TopicDetailModalProps {
@@ -33,8 +37,46 @@ interface TopicDetailModalProps {
 const TopicDetailModal = ({ topic, isOpen, onClose, onMarkComplete }: TopicDetailModalProps) => {
   const bgColor = useColorModeValue('gray.50', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const toast = useToast();
 
   if (!topic) return null;
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: 'Copied!',
+        description: 'Search string copied to clipboard',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({
+        title: 'Failed to copy',
+        status: 'error',
+        duration: 2000,
+      });
+    }
+  };
+
+  // Keyboard shortcut: Enter to mark complete
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !topic.isCompleted && onMarkComplete) {
+        e.preventDefault();
+        handleMarkComplete();
+      }
+    },
+    [topic, onMarkComplete]
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleKeyDown]);
 
   const handleMarkComplete = async () => {
     if (onMarkComplete && !topic.isCompleted) {
@@ -126,9 +168,20 @@ const TopicDetailModal = ({ topic, isOpen, onClose, onMarkComplete }: TopicDetai
                     borderWidth={1}
                     borderColor={borderColor}
                   >
-                    <Text fontSize="sm" fontFamily="mono" mb={2}>
-                      "{searchString}"
-                    </Text>
+                    <HStack justify="space-between" mb={2}>
+                      <Text fontSize="sm" fontFamily="mono">
+                        "{searchString}"
+                      </Text>
+                      <Tooltip label="Copy to clipboard" hasArrow>
+                        <IconButton
+                          aria-label="Copy search string"
+                          icon={<FaCopy />}
+                          size="xs"
+                          variant="ghost"
+                          onClick={() => copyToClipboard(searchString)}
+                        />
+                      </Tooltip>
+                    </HStack>
                     <Wrap spacing={2}>
                       <WrapItem>
                         <Link
@@ -196,6 +249,9 @@ const TopicDetailModal = ({ topic, isOpen, onClose, onMarkComplete }: TopicDetai
         </ModalBody>
 
         <ModalFooter>
+          <Text fontSize="xs" color="gray.500" mr="auto">
+            Press Esc to close{!topic.isCompleted && onMarkComplete ? ', Enter to complete' : ''}
+          </Text>
           <Button variant="ghost" mr={3} onClick={onClose}>
             Close
           </Button>

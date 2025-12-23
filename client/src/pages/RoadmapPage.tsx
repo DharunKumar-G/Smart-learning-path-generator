@@ -29,6 +29,9 @@ import {
   MenuList,
   MenuItem,
   useDisclosure,
+  Skeleton,
+  SkeletonText,
+  SkeletonCircle,
 } from '@chakra-ui/react';
 import { FaClock, FaSearch, FaQuestionCircle, FaCheckCircle, FaDownload, FaFilePdf, FaFileCode, FaFileAlt } from 'react-icons/fa';
 import { useRoadmapStore } from '../stores/roadmapStore';
@@ -155,12 +158,59 @@ const RoadmapPage = () => {
 
   if (isLoading) {
     return (
-      <Center minH="calc(100vh - 64px)">
-        <VStack spacing={4}>
-          <Spinner size="xl" color="brand.500" />
-          <Text color="gray.400">Loading your learning path...</Text>
-        </VStack>
-      </Center>
+      <Box py={8}>
+        <Container maxW="container.xl">
+          <VStack spacing={8} align="stretch">
+            {/* Header Skeleton */}
+            <Box
+              p={6}
+              bg="whiteAlpha.50"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="whiteAlpha.100"
+            >
+              <VStack spacing={4} align="stretch">
+                <HStack justify="space-between">
+                  <VStack align="start" spacing={2} flex={1}>
+                    <Skeleton height="32px" width="60%" />
+                    <Skeleton height="20px" width="80%" />
+                  </VStack>
+                  <Skeleton height="40px" width="120px" borderRadius="md" />
+                </HStack>
+                <Skeleton height="8px" borderRadius="full" />
+                <HStack justify="space-between">
+                  <Skeleton height="16px" width="100px" />
+                  <Skeleton height="16px" width="80px" />
+                </HStack>
+              </VStack>
+            </Box>
+
+            {/* Week Skeletons */}
+            {[1, 2, 3].map((i) => (
+              <Box
+                key={i}
+                p={4}
+                bg="whiteAlpha.50"
+                borderRadius="lg"
+                border="1px solid"
+                borderColor="whiteAlpha.100"
+              >
+                <HStack justify="space-between" mb={4}>
+                  <HStack spacing={3}>
+                    <SkeletonCircle size="10" />
+                    <VStack align="start" spacing={1}>
+                      <Skeleton height="20px" width="150px" />
+                      <Skeleton height="14px" width="200px" />
+                    </VStack>
+                  </HStack>
+                  <Skeleton height="24px" width="60px" borderRadius="full" />
+                </HStack>
+                <SkeletonText noOfLines={3} spacing={3} />
+              </Box>
+            ))}
+          </VStack>
+        </Container>
+      </Box>
     );
   }
 
