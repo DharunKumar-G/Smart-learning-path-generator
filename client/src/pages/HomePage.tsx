@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -11,8 +12,9 @@ import {
   Flex,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FaRocket, FaBrain, FaChartLine, FaLightbulb, FaArrowRight } from 'react-icons/fa';
+import { FaRocket, FaBrain, FaChartLine, FaLightbulb, FaArrowRight, FaQuoteLeft } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { learningQuotes, getRandomQuote } from '../utils/quotes';
 
 const MotionBox = motion(Box);
 
@@ -40,6 +42,15 @@ const features = [
 ];
 
 const HomePage = () => {
+  const [quote, setQuote] = useState(getRandomQuote(learningQuotes));
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuote(getRandomQuote(learningQuotes));
+    }, 10000); // Change quote every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <Box>
       {/* Hero Section */}
@@ -175,6 +186,26 @@ const HomePage = () => {
               ))}
             </SimpleGrid>
           </VStack>
+        </Container>
+      </Box>
+
+      {/* Inspirational Quote */}
+      <Box py={16} bg="blackAlpha.200">
+        <Container maxW="container.md" textAlign="center">
+          <MotionBox
+            key={quote.quote}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Icon as={FaQuoteLeft} boxSize={8} color="brand.400" mb={4} opacity={0.5} />
+            <Text fontSize="xl" fontStyle="italic" color="gray.300" mb={4}>
+              "{quote.quote}"
+            </Text>
+            <Text color="gray.500" fontWeight="medium">
+              — {quote.author}
+            </Text>
+          </MotionBox>
         </Container>
       </Box>
 

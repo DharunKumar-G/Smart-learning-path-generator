@@ -1,7 +1,9 @@
-import { Box, Flex, Container, Button, HStack, Text, IconButton, useColorMode } from '@chakra-ui/react';
+import { Box, Flex, Container, Button, HStack, Text, IconButton, useColorMode, useDisclosure, Tooltip } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { FaMoon, FaSun, FaGraduationCap } from 'react-icons/fa';
+import { FaMoon, FaSun, FaGraduationCap, FaKeyboard } from 'react-icons/fa';
 import { useAuthStore } from '../stores/authStore';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +13,10 @@ const Layout = ({ children }: LayoutProps) => {
   const { colorMode, toggleColorMode } = useColorMode();
   const { isAuthenticated, user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts({ onShowHelp: onOpen });
 
   const handleLogout = () => {
     logout();
@@ -49,6 +55,16 @@ const Layout = ({ children }: LayoutProps) => {
 
             {/* Right side */}
             <HStack spacing={4}>
+              <Tooltip label="Keyboard shortcuts (?)" hasArrow>
+                <IconButton
+                  aria-label="Keyboard shortcuts"
+                  icon={<FaKeyboard />}
+                  onClick={onOpen}
+                  variant="ghost"
+                  color="white"
+                  size="sm"
+                />
+              </Tooltip>
               <IconButton
                 aria-label="Toggle color mode"
                 icon={colorMode === 'dark' ? <FaSun /> : <FaMoon />}
@@ -110,6 +126,9 @@ const Layout = ({ children }: LayoutProps) => {
       <Box pt="16">
         {children}
       </Box>
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal isOpen={isOpen} onClose={onClose} />
     </Box>
   );
 };
