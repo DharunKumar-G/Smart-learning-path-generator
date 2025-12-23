@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -25,9 +25,14 @@ import {
   AlertDialogOverlay,
   useDisclosure,
   useToast,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Select,
+  Tooltip,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FaPlus, FaRoad, FaClock, FaCalendarWeek, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaRoad, FaClock, FaCalendarWeek, FaTrash, FaSearch } from 'react-icons/fa';
 import { useRoadmapStore } from '../stores/roadmapStore';
 import { getRoadmaps, deleteRoadmap } from '../services/roadmap';
 
@@ -91,6 +96,10 @@ const DashboardPage = () => {
     }
   };
 
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'in-progress' | 'completed'>('all');
+
   // Calculate progress for a roadmap
   const calculateProgress = (roadmap: typeof roadmaps[0]) => {
     const totalTopics = roadmap.weeks.reduce(
@@ -103,6 +112,22 @@ const DashboardPage = () => {
     );
     return totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
   };
+
+  // Filter roadmaps based on search and status
+  const filteredRoadmaps = useMemo(() => {
+    return roadmaps.filter((roadmap) => {
+      const matchesSearch = roadmap.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        roadmap.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        roadmap.targetGoal.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const progress = calculateProgress(roadmap);
+      const matchesStatus = statusFilter === 'all' ||
+        (statusFilter === 'completed' && progress === 100) ||
+        (statusFilter === 'in-progress' && progress < 100);
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [roadmaps, searchQuery, statusFilter]);
 
   if (isLoading) {
     return (
@@ -134,6 +159,42 @@ const DashboardPage = () => {
             </Button>
           </HStack>
 
+          {/* Search and Filter */}
+          {roadmaps.length > 0 && (
+            <HStack spacing={4} wrap="wrap">
+              <InputGroup maxW="300px">
+                <InputLeftElement pointerEvents="none">
+                  <Icon as={FaSearch} color="gray.400" />
+                </InputLeftElement>
+                <Input
+                  placeholder="Search roadmaps..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  bg="whiteAlpha.50"
+                  border="1px solid"
+                  borderColor="whiteAlpha.200"
+                />
+              </InputGroup>
+              <Select
+                maxW="180px"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                bg="whiteAlpha.50"
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+              >
+                <option value="all">All Status</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </Select>
+              {(searchQuery || statusFilter !== 'all') && (
+                <Text fontSize="sm" color="gray.400">
+                  Showing {filteredRoadmaps.length} of {roadmaps.length} paths
+                </Text>
+              )}
+            </HStack>
+          )}
+
           {/* Roadmaps Grid */}
           {roadmaps.length === 0 ? (
             <Center
@@ -161,9 +222,32 @@ const DashboardPage = () => {
                 </Button>
               </VStack>
             </Center>
+          ) : filteredRoadmaps.length === 0 ? (
+            <Center
+              py={16}
+              bg="whiteAlpha.50"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="whiteAlpha.100"
+            >
+              <VStack spacing={3}>
+                <Icon as={FaSearch} boxSize={10} color="gray.500" />
+                <Text color="gray.400">No matching roadmaps found</Text>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('all');
+                  }}
+                >
+                  Clear filters
+                </Button>
+              </VStack>
+            </Center>
           ) : (
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-              {roadmaps.map((roadmap) => {
+              {filteredRoadmaps.map((roadmap) => {
                 const progress = calculateProgress(roadmap);
                 return (
                   <Card
@@ -235,13 +319,19 @@ const DashboardPage = () => {
                               {progress}%
                             </Text>
                           </HStack>
-                          <Progress
-                            value={progress}
-                            colorScheme="blue"
-                            borderRadius="full"
-                            size="sm"
-                            bg="whiteAlpha.200"
-                          />
+                          <Tooltip
+                            label={`${roadmap.weeks.reduce((acc, w) => acc + w.topics.filter(t => t.isCompleted).length, 0)} of ${roadmap.weeks.reduce((acc, w) => acc + w.topics.length, 0)} topics completed`}
+                            hasArrow
+                            placement="top"
+                          >
+                            <Progress
+                              value={progress}
+                              colorScheme={progress === 100 ? 'green' : 'blue'}
+                              borderRadius="full"
+                              size="sm"
+                              bg="whiteAlpha.200"
+                            />
+                          </Tooltip>
                         </Box>
                       </VStack>
                     </CardBody>

@@ -227,16 +227,24 @@ const CreateRoadmapPage = () => {
               </Alert>
 
               {/* Submit Button */}
-              <Button
-                type="submit"
-                colorScheme="blue"
-                size="lg"
-                isLoading={isGenerating}
-                loadingText="AI is generating your roadmap..."
-                leftIcon={<FaRocket />}
-              >
-                Generate My Learning Path
-              </Button>
+              <VStack spacing={2}>
+                <Button
+                  type="submit"
+                  colorScheme="blue"
+                  size="lg"
+                  w="full"
+                  isLoading={isGenerating}
+                  loadingText="AI is generating your roadmap..."
+                  leftIcon={<FaRocket />}
+                >
+                  Generate My Learning Path
+                </Button>
+                {isGenerating && (
+                  <Text fontSize="sm" color="gray.400" textAlign="center">
+                    ✨ This usually takes 15-30 seconds. Our AI is crafting your personalized path...
+                  </Text>
+                )}
+              </VStack>
             </VStack>
           </MotionBox>
         </VStack>
