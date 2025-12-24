@@ -34,6 +34,9 @@ import {
   StatLabel,
   StatNumber,
   StatHelpText,
+  Skeleton,
+  SkeletonText,
+  SkeletonCircle,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FaPlus, FaRoad, FaClock, FaCalendarWeek, FaTrash, FaSearch, FaSort, FaFire, FaCheckCircle, FaBook, FaTrophy } from 'react-icons/fa';
@@ -156,9 +159,63 @@ const DashboardPage = () => {
 
   if (isLoading) {
     return (
-      <Center minH="calc(100vh - 64px)">
-        <Spinner size="xl" color="brand.500" />
-      </Center>
+      <Box py={8}>
+        <Container maxW="container.xl">
+          <VStack spacing={8} align="stretch">
+            {/* Header Skeleton */}
+            <HStack justify="space-between" align="center">
+              <VStack align="start" spacing={2}>
+                <Skeleton height="32px" width="250px" />
+                <Skeleton height="20px" width="180px" />
+              </VStack>
+              <Skeleton height="40px" width="150px" borderRadius="md" />
+            </HStack>
+
+            {/* Stats Skeleton */}
+            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} bg="whiteAlpha.50" border="1px solid" borderColor="whiteAlpha.100">
+                  <CardBody py={4}>
+                    <HStack spacing={3}>
+                      <SkeletonCircle size="10" />
+                      <VStack align="start" spacing={1}>
+                        <Skeleton height="14px" width="60px" />
+                        <Skeleton height="24px" width="40px" />
+                      </VStack>
+                    </HStack>
+                  </CardBody>
+                </Card>
+              ))}
+            </SimpleGrid>
+
+            {/* Cards Skeleton */}
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+              {[1, 2, 3].map((i) => (
+                <Card key={i} bg="whiteAlpha.50" border="1px solid" borderColor="whiteAlpha.100">
+                  <CardBody>
+                    <VStack align="stretch" spacing={4}>
+                      <HStack justify="space-between">
+                        <Skeleton height="24px" width="80px" borderRadius="md" />
+                        <Skeleton height="16px" width="60px" />
+                      </HStack>
+                      <Skeleton height="24px" width="80%" />
+                      <SkeletonText noOfLines={2} spacing={2} />
+                      <HStack spacing={4}>
+                        <Skeleton height="16px" width="70px" />
+                        <Skeleton height="16px" width="70px" />
+                      </HStack>
+                      <Skeleton height="8px" borderRadius="full" />
+                    </VStack>
+                  </CardBody>
+                  <CardFooter pt={0}>
+                    <Skeleton height="40px" width="100%" borderRadius="md" />
+                  </CardFooter>
+                </Card>
+              ))}
+            </SimpleGrid>
+          </VStack>
+        </Container>
+      </Box>
     );
   }
 

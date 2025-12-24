@@ -33,7 +33,7 @@ import {
   SkeletonText,
   SkeletonCircle,
 } from '@chakra-ui/react';
-import { FaClock, FaSearch, FaQuestionCircle, FaCheckCircle, FaDownload, FaFilePdf, FaFileCode, FaFileAlt, FaArrowLeft, FaHourglass } from 'react-icons/fa';
+import { FaClock, FaSearch, FaQuestionCircle, FaCheckCircle, FaDownload, FaFilePdf, FaFileCode, FaFileAlt, FaArrowLeft, FaHourglass, FaShare, FaLink, FaTwitter } from 'react-icons/fa';
 import { useRoadmapStore } from '../stores/roadmapStore';
 import { getRoadmap, toggleTopicComplete } from '../services/roadmap';
 import { generateQuiz } from '../services/quiz';
@@ -277,6 +277,41 @@ const RoadmapPage = () => {
                   <Menu>
                     <MenuButton
                       as={Button}
+                      leftIcon={<FaShare />}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Share
+                    </MenuButton>
+                    <MenuList>
+                      <MenuItem 
+                        icon={<FaLink />} 
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.href);
+                          toast({
+                            title: 'Link copied!',
+                            description: 'Roadmap link copied to clipboard',
+                            status: 'success',
+                            duration: 2000,
+                          });
+                        }}
+                      >
+                        Copy Link
+                      </MenuItem>
+                      <MenuItem 
+                        icon={<FaTwitter />}
+                        onClick={() => {
+                          const text = `Check out my learning roadmap: ${currentRoadmap.title} - ${progress}% complete! 🚀`;
+                          window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`, '_blank');
+                        }}
+                      >
+                        Share on Twitter
+                      </MenuItem>
+                    </MenuList>
+                  </Menu>
+                  <Menu>
+                    <MenuButton
+                      as={Button}
                       leftIcon={<FaDownload />}
                       variant="outline"
                       size="sm"
@@ -420,7 +455,7 @@ const RoadmapPage = () => {
 
                       {/* Topics List */}
                       <VStack spacing={3} align="stretch">
-                        {week.topics.map((topic) => (
+                        {week.topics.map((topic, topicIndex) => (
                           <Box
                             key={topic.id}
                             p={4}
@@ -429,10 +464,17 @@ const RoadmapPage = () => {
                             border="1px solid"
                             borderColor={topic.isCompleted ? 'green.700' : 'whiteAlpha.100'}
                             opacity={updatingTopic === topic.id ? 0.7 : 1}
-                            transition="all 0.2s"
+                            transition="all 0.3s ease"
                             cursor="pointer"
-                            _hover={{ borderColor: 'brand.400' }}
+                            _hover={{ 
+                              borderColor: 'brand.400',
+                              transform: 'translateX(8px)',
+                              boxShadow: 'lg',
+                            }}
                             onClick={() => handleTopicClick(topic)}
+                            style={{
+                              animationDelay: `${topicIndex * 50}ms`,
+                            }}
                           >
                             <HStack justify="space-between" align="start" spacing={4}>
                               <HStack align="start" spacing={3} flex="1">

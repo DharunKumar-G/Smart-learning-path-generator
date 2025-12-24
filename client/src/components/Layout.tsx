@@ -4,6 +4,7 @@ import { FaMoon, FaSun, FaGraduationCap, FaKeyboard } from 'react-icons/fa';
 import { useAuthStore } from '../stores/authStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import Footer from './Footer';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,7 +25,7 @@ const Layout = ({ children }: LayoutProps) => {
   };
 
   return (
-    <Box minH="100vh">
+    <Box minH="100vh" display="flex" flexDirection="column">
       {/* Navigation */}
       <Box
         as="nav"
@@ -123,9 +124,12 @@ const Layout = ({ children }: LayoutProps) => {
       </Box>
 
       {/* Main content */}
-      <Box pt="16">
+      <Box pt="16" flex="1">
         {children}
       </Box>
+
+      {/* Footer */}
+      <Footer />
 
       {/* Keyboard Shortcuts Modal */}
       <KeyboardShortcutsModal isOpen={isOpen} onClose={onClose} />
