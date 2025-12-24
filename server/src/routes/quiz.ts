@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma.js';
-import { generateQuiz } from '../services/openai.js';
+import { generateQuiz } from '../services/groq.js';
 
 const router = Router();
 

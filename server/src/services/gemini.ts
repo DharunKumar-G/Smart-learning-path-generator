@@ -1,11 +1,12 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { researchLearningPath } from './perplexity.js';
 
 // Initialize Gemini client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // Get the Gemini model
 const model = genAI.getGenerativeModel({ 
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.0-flash',
   generationConfig: {
     temperature: 0.7,
     maxOutputTokens: 4000,
@@ -51,20 +52,38 @@ function extractJSON(text: string): string {
 }
 
 // Generate a personalized learning roadmap using AI
+// Step 1: Perplexity researches the learning path (web search)
+// Step 2: Gemini organizes the research into a structured plan
 export async function generateRoadmap(input: RoadmapInput): Promise<GeneratedRoadmap> {
+  // First, use Perplexity to research the learning path
+  console.log('🔍 Researching learning path with Perplexity...');
+  let researchData = '';
+  try {
+    researchData = await researchLearningPath(input.currentSkills, input.targetGoal);
+    console.log('✅ Research completed, organizing with Gemini...');
+  } catch (error) {
+    console.log('⚠️ Perplexity research failed, proceeding with Gemini only...');
+  }
+
+  // Build the prompt with or without research data
+  const researchSection = researchData 
+    ? `\n\n**Research Data (from web search - use this to inform your roadmap):**\n${researchData}\n\n`
+    : '';
+
   const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap based on the following inputs:
 
 **Current Skills:** ${input.currentSkills}
 **Target Goal:** ${input.targetGoal}
 **Available Time:** ${input.hoursPerWeek} hours per week
 **Duration:** ${input.totalWeeks} weeks
-
+${researchSection}
 Generate a structured learning path that:
 1. Builds on existing knowledge progressively
 2. Prioritizes foundational concepts before advanced topics
 3. Includes practical projects and exercises
 4. Provides reasoning for topic ordering (prerequisites)
 5. Includes search strings for finding quality resources
+${researchData ? '6. Incorporates the researched resources and current best practices from the research data above' : ''}
 
 Return a JSON object with this exact structure:
 {
