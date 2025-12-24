@@ -40,7 +40,7 @@ export const useRoadmapStore = create<RoadmapState>((set, get) => ({
   })),
   
   updateTopicCompletion: (topicId, isCompleted) => {
-    const { currentRoadmap } = get();
+    const { currentRoadmap, roadmaps } = get();
     if (!currentRoadmap) return;
     
     const updatedWeeks = currentRoadmap.weeks.map((week) => ({
@@ -52,8 +52,16 @@ export const useRoadmapStore = create<RoadmapState>((set, get) => ({
       ),
     }));
     
+    const updatedRoadmap = { ...currentRoadmap, weeks: updatedWeeks };
+    
+    // Also update in roadmaps array
+    const updatedRoadmaps = roadmaps.map((r) =>
+      r.id === currentRoadmap.id ? updatedRoadmap : r
+    );
+    
     set({
-      currentRoadmap: { ...currentRoadmap, weeks: updatedWeeks },
+      currentRoadmap: updatedRoadmap,
+      roadmaps: updatedRoadmaps,
     });
   },
   

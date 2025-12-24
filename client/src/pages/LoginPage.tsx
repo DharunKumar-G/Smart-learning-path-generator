@@ -17,10 +17,12 @@ import {
   Checkbox,
   HStack,
   Divider,
+  Center,
 } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
-import { login } from '../services/auth';
+import { GoogleLogin } from '@react-oauth/google';
+import { login, googleSignIn } from '../services/auth';
 import { useAuthStore } from '../stores/authStore';
 
 const LoginPage = () => {
@@ -62,6 +64,44 @@ const LoginPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setIsLoading(true);
+    try {
+      const response = await googleSignIn(credentialResponse.credential);
+      setAuth(response.user, response.token);
+      
+      toast({
+        title: 'Welcome!',
+        description: 'You have successfully signed in with Google.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      navigate('/dashboard');
+    } catch (error: any) {
+      toast({
+        title: 'Google Sign In failed',
+        description: error.response?.data?.error || 'Something went wrong',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast({
+      title: 'Google Sign In failed',
+      description: 'Could not sign in with Google. Please try again.',
+      status: 'error',
+      duration: 5000,
+      isClosable: true,
+    });
   };
 
   return (
@@ -148,26 +188,16 @@ const LoginPage = () => {
                 <Divider borderColor="whiteAlpha.300" />
               </HStack>
 
-              <HStack w="full" spacing={4}>
-                <Button
-                  variant="outline"
-                  w="full"
-                  borderColor="whiteAlpha.300"
-                  _hover={{ bg: 'whiteAlpha.100' }}
-                  isDisabled
-                >
-                  🔗 Google (Soon)
-                </Button>
-                <Button
-                  variant="outline"
-                  w="full"
-                  borderColor="whiteAlpha.300"
-                  _hover={{ bg: 'whiteAlpha.100' }}
-                  isDisabled
-                >
-                  🐙 GitHub (Soon)
-                </Button>
-              </HStack>
+              <Center w="full">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="filled_black"
+                  size="large"
+                  width="100%"
+                  text="signin_with"
+                />
+              </Center>
             </VStack>
           </Box>
 

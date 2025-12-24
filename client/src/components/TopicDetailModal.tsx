@@ -39,7 +39,29 @@ const TopicDetailModal = ({ topic, isOpen, onClose, onMarkComplete }: TopicDetai
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const toast = useToast();
 
-  if (!topic) return null;
+  const handleMarkComplete = useCallback(async () => {
+    if (onMarkComplete && topic && !topic.isCompleted) {
+      await onMarkComplete(topic.id);
+    }
+  }, [onMarkComplete, topic]);
+
+  // Keyboard shortcut: Enter to mark complete
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && topic && !topic.isCompleted && onMarkComplete) {
+        e.preventDefault();
+        handleMarkComplete();
+      }
+    },
+    [topic, onMarkComplete, handleMarkComplete]
+  );
+
+  useEffect(() => {
+    if (isOpen && topic) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleKeyDown, topic]);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -60,29 +82,8 @@ const TopicDetailModal = ({ topic, isOpen, onClose, onMarkComplete }: TopicDetai
     }
   };
 
-  // Keyboard shortcut: Enter to mark complete
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && !topic.isCompleted && onMarkComplete) {
-        e.preventDefault();
-        handleMarkComplete();
-      }
-    },
-    [topic, onMarkComplete]
-  );
-
-  useEffect(() => {
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isOpen, handleKeyDown]);
-
-  const handleMarkComplete = async () => {
-    if (onMarkComplete && !topic.isCompleted) {
-      await onMarkComplete(topic.id);
-    }
-  };
+  // Early return AFTER all hooks
+  if (!topic) return null;
 
   // Generate search URLs
   const youtubeUrl = (query: string) =>

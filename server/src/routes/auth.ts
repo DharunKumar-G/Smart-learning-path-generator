@@ -2,9 +2,13 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import { OAuth2Client } from 'google-auth-library';
 import prisma from '../lib/prisma.js';
 
 const router = Router();
+
+// Google OAuth client
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Validation schemas
 const registerSchema = z.object({
@@ -16,6 +20,10 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required')
+});
+
+const googleAuthSchema = z.object({
+  credential: z.string().min(1, 'Google credential is required')
 });
 
 // JWT secret
@@ -151,6 +159,61 @@ router.get('/me', async (req: Request, res: Response) => {
     }
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Failed to get user' });
+  }
+});
+
+// Google Sign In
+router.post('/google', async (req: Request, res: Response) => {
+  try {
+    const { credential } = googleAuthSchema.parse(req.body);
+
+    // Verify the Google token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return res.status(400).json({ error: 'Invalid Google token' });
+    }
+
+    const { email, name, picture, sub: googleId } = payload;
+
+    // Check if user exists
+    let user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      // Create new user with Google account
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: name || email.split('@')[0],
+          password: '', // No password for Google users
+        }
+      });
+    }
+
+    // Generate JWT token
+    const token = generateToken(user.id);
+
+    res.json({
+      message: 'Google sign in successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+      token
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    console.error('Google auth error:', error);
+    res.status(500).json({ error: 'Failed to authenticate with Google' });
   }
 });
 

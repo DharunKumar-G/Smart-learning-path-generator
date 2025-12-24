@@ -18,6 +18,12 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
   return response.data;
 };
 
+// Google Sign In
+export const googleSignIn = async (credential: string): Promise<AuthResponse> => {
+  const response = await api.post<AuthResponse>('/auth/google', { credential });
+  return response.data;
+};
+
 // Get current user
 export const getCurrentUser = async (): Promise<{ user: User }> => {
   const response = await api.get<{ user: User }>('/auth/me');

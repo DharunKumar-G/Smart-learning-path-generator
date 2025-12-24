@@ -16,10 +16,13 @@ import {
   IconButton,
   Progress,
   HStack,
+  Divider,
+  Center,
 } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
-import { register } from '../services/auth';
+import { GoogleLogin } from '@react-oauth/google';
+import { register, googleSignIn } from '../services/auth';
 import { useAuthStore } from '../stores/authStore';
 
 const RegisterPage = () => {
@@ -101,6 +104,44 @@ const RegisterPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setIsLoading(true);
+    try {
+      const response = await googleSignIn(credentialResponse.credential);
+      setAuth(response.user, response.token);
+      
+      toast({
+        title: 'Welcome!',
+        description: 'You have successfully signed up with Google.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      navigate('/create');
+    } catch (error: any) {
+      toast({
+        title: 'Google Sign Up failed',
+        description: error.response?.data?.error || 'Something went wrong',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast({
+      title: 'Google Sign Up failed',
+      description: 'Could not sign up with Google. Please try again.',
+      status: 'error',
+      duration: 5000,
+      isClosable: true,
+    });
   };
 
   return (
@@ -207,6 +248,23 @@ const RegisterPage = () => {
               >
                 Create Account
               </Button>
+
+              <HStack w="full">
+                <Divider borderColor="whiteAlpha.300" />
+                <Text fontSize="sm" color="gray.500" whiteSpace="nowrap">or sign up with</Text>
+                <Divider borderColor="whiteAlpha.300" />
+              </HStack>
+
+              <Center w="full">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="filled_black"
+                  size="large"
+                  width="100%"
+                  text="signup_with"
+                />
+              </Center>
             </VStack>
           </Box>
 

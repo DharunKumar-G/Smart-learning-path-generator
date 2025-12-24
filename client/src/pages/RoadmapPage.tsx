@@ -54,7 +54,10 @@ const RoadmapPage = () => {
   useEffect(() => {
     const fetchRoadmap = async () => {
       if (!id) return;
-      setLoading(true);
+      // Only set loading if we don't already have the roadmap
+      if (!currentRoadmap || currentRoadmap.id !== id) {
+        setLoading(true);
+      }
       try {
         const data = await getRoadmap(id);
         setCurrentRoadmap(data.roadmap);
@@ -72,13 +75,18 @@ const RoadmapPage = () => {
     };
 
     fetchRoadmap();
-  }, [id, setCurrentRoadmap, setLoading, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleTopicToggle = async (topicId: string, currentStatus: boolean) => {
     setUpdatingTopic(topicId);
     try {
-      await toggleTopicComplete(topicId, !currentStatus);
+      // Update local state first for instant feedback
       updateTopicCompletion(topicId, !currentStatus);
+      
+      // Then sync with server
+      await toggleTopicComplete(topicId, !currentStatus);
+      
       toast({
         title: !currentStatus ? '🎉 Topic completed!' : 'Topic marked incomplete',
         status: 'success',
@@ -86,6 +94,9 @@ const RoadmapPage = () => {
         isClosable: true,
       });
     } catch (error) {
+      // Revert on error
+      updateTopicCompletion(topicId, currentStatus);
+      console.error('Topic toggle error:', error);
       toast({
         title: 'Failed to update topic',
         status: 'error',
@@ -103,8 +114,8 @@ const RoadmapPage = () => {
   };
 
   const handleMarkTopicComplete = async (topicId: string) => {
+    onClose(); // Close modal first to prevent stale state issues
     await handleTopicToggle(topicId, false);
-    onClose();
   };
 
   const handleGenerateQuiz = async (weekId: string) => {
