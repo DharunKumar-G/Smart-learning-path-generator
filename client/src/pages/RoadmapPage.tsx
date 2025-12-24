@@ -32,14 +32,20 @@ import {
   Skeleton,
   SkeletonText,
   SkeletonCircle,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  ButtonGroup,
 } from '@chakra-ui/react';
-import { FaClock, FaSearch, FaQuestionCircle, FaCheckCircle, FaDownload, FaFilePdf, FaFileCode, FaFileAlt, FaArrowLeft, FaHourglass, FaShare, FaLink, FaTwitter } from 'react-icons/fa';
+import { FaClock, FaSearch, FaQuestionCircle, FaCheckCircle, FaDownload, FaFilePdf, FaFileCode, FaFileAlt, FaArrowLeft, FaHourglass, FaShare, FaLink, FaTwitter, FaBookmark, FaFilter } from 'react-icons/fa';
 import { useRoadmapStore } from '../stores/roadmapStore';
 import { getRoadmap, toggleTopicComplete } from '../services/roadmap';
 import { generateQuiz } from '../services/quiz';
 import TopicDetailModal from '../components/TopicDetailModal';
 import { exportToPDF, exportToJSON, exportToMarkdown } from '../utils/exportRoadmap';
 import type { Topic } from '../types';
+
+type FilterType = 'all' | 'completed' | 'incomplete' | 'bookmarked';
 
 const RoadmapPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +54,8 @@ const RoadmapPage = () => {
   const [updatingTopic, setUpdatingTopic] = useState<string | null>(null);
   const [generatingQuiz, setGeneratingQuiz] = useState<string | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState<FilterType>('all');
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
@@ -175,6 +183,46 @@ const RoadmapPage = () => {
         .filter((t) => !t.isCompleted)
         .reduce((sum, t) => sum + t.estimatedHours, 0);
     }, 0);
+  };
+
+  // Filter topics based on search query and filter type
+  const filterTopics = (topics: Topic[]) => {
+    return topics.filter((topic) => {
+      // Search filter
+      const matchesSearch = searchQuery === '' || 
+        topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        topic.description.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Status filter
+      let matchesFilter = true;
+      switch (filter) {
+        case 'completed':
+          matchesFilter = topic.isCompleted;
+          break;
+        case 'incomplete':
+          matchesFilter = !topic.isCompleted;
+          break;
+        case 'bookmarked':
+          matchesFilter = topic.isBookmarked;
+          break;
+        default:
+          matchesFilter = true;
+      }
+      
+      return matchesSearch && matchesFilter;
+    });
+  };
+
+  // Get total counts for filter badges
+  const getFilterCounts = () => {
+    if (!currentRoadmap) return { all: 0, completed: 0, incomplete: 0, bookmarked: 0 };
+    const allTopics = currentRoadmap.weeks.flatMap(w => w.topics);
+    return {
+      all: allTopics.length,
+      completed: allTopics.filter(t => t.isCompleted).length,
+      incomplete: allTopics.filter(t => !t.isCompleted).length,
+      bookmarked: allTopics.filter(t => t.isBookmarked).length,
+    };
   };
 
   if (isLoading) {
@@ -403,10 +451,95 @@ const RoadmapPage = () => {
             </Box>
           )}
 
+          {/* Search and Filter Bar */}
+          <Box
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="xl"
+            border="1px solid"
+            borderColor="whiteAlpha.100"
+          >
+            <VStack spacing={4} align="stretch">
+              <HStack spacing={4} wrap="wrap">
+                <InputGroup maxW="400px" flex="1">
+                  <InputLeftElement pointerEvents="none">
+                    <Icon as={FaSearch} color="gray.400" />
+                  </InputLeftElement>
+                  <Input
+                    placeholder="Search topics..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    bg="whiteAlpha.100"
+                    border="1px solid"
+                    borderColor="whiteAlpha.200"
+                    _focus={{ borderColor: 'brand.400', boxShadow: 'none' }}
+                  />
+                </InputGroup>
+                <ButtonGroup size="sm" isAttached variant="outline">
+                  <Button
+                    onClick={() => setFilter('all')}
+                    colorScheme={filter === 'all' ? 'blue' : 'gray'}
+                    variant={filter === 'all' ? 'solid' : 'outline'}
+                  >
+                    All ({getFilterCounts().all})
+                  </Button>
+                  <Button
+                    onClick={() => setFilter('completed')}
+                    colorScheme={filter === 'completed' ? 'green' : 'gray'}
+                    variant={filter === 'completed' ? 'solid' : 'outline'}
+                    leftIcon={<FaCheckCircle />}
+                  >
+                    Completed ({getFilterCounts().completed})
+                  </Button>
+                  <Button
+                    onClick={() => setFilter('incomplete')}
+                    colorScheme={filter === 'incomplete' ? 'orange' : 'gray'}
+                    variant={filter === 'incomplete' ? 'solid' : 'outline'}
+                  >
+                    Incomplete ({getFilterCounts().incomplete})
+                  </Button>
+                  <Button
+                    onClick={() => setFilter('bookmarked')}
+                    colorScheme={filter === 'bookmarked' ? 'purple' : 'gray'}
+                    variant={filter === 'bookmarked' ? 'solid' : 'outline'}
+                    leftIcon={<FaBookmark />}
+                  >
+                    Bookmarked ({getFilterCounts().bookmarked})
+                  </Button>
+                </ButtonGroup>
+              </HStack>
+              {(searchQuery || filter !== 'all') && (
+                <HStack>
+                  <Text fontSize="sm" color="gray.400">
+                    Showing filtered results
+                  </Text>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    colorScheme="blue"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setFilter('all');
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                </HStack>
+              )}
+            </VStack>
+          </Box>
+
           {/* Weeks Accordion */}
           <Accordion allowMultiple defaultIndex={[0]}>
             {currentRoadmap.weeks.map((week, weekIndex) => {
               const weekProgress = calculateWeekProgress(weekIndex);
+              const filteredTopics = filterTopics(week.topics);
+              
+              // Skip weeks with no matching topics when filtering
+              if (filteredTopics.length === 0 && (searchQuery || filter !== 'all')) {
+                return null;
+              }
+              
               return (
                 <AccordionItem
                   key={week.id}
@@ -466,14 +599,18 @@ const RoadmapPage = () => {
 
                       {/* Topics List */}
                       <VStack spacing={3} align="stretch">
-                        {week.topics.map((topic, topicIndex) => (
+                        {filteredTopics.length === 0 ? (
+                          <Text color="gray.500" fontSize="sm" textAlign="center" py={4}>
+                            No topics match your search
+                          </Text>
+                        ) : filteredTopics.map((topic, topicIndex) => (
                           <Box
                             key={topic.id}
                             p={4}
                             bg={topic.isCompleted ? 'green.900' : 'whiteAlpha.50'}
                             borderRadius="lg"
                             border="1px solid"
-                            borderColor={topic.isCompleted ? 'green.700' : 'whiteAlpha.100'}
+                            borderColor={topic.isBookmarked ? 'purple.500' : topic.isCompleted ? 'green.700' : 'whiteAlpha.100'}
                             opacity={updatingTopic === topic.id ? 0.7 : 1}
                             transition="all 0.3s ease"
                             cursor="pointer"
@@ -511,6 +648,9 @@ const RoadmapPage = () => {
                                     </Text>
                                     {topic.isCompleted && (
                                       <Icon as={FaCheckCircle} color="green.400" />
+                                    )}
+                                    {topic.isBookmarked && (
+                                      <Icon as={FaBookmark} color="purple.400" />
                                     )}
                                   </HStack>
                                   

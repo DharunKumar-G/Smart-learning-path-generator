@@ -39,7 +39,7 @@ import {
   SkeletonCircle,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FaPlus, FaRoad, FaClock, FaCalendarWeek, FaTrash, FaSearch, FaSort, FaFire, FaCheckCircle, FaBook, FaTrophy } from 'react-icons/fa';
+import { FaPlus, FaRoad, FaClock, FaCalendarWeek, FaTrash, FaSearch, FaSort, FaFire, FaCheckCircle, FaBook, FaTrophy, FaBookmark } from 'react-icons/fa';
 import { useRoadmapStore } from '../stores/roadmapStore';
 import { useAuthStore } from '../stores/authStore';
 import { getRoadmaps, deleteRoadmap } from '../services/roadmap';
@@ -248,7 +248,7 @@ const DashboardPage = () => {
 
           {/* Quick Stats */}
           {roadmaps.length > 0 && (
-            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+            <SimpleGrid columns={{ base: 2, md: 5 }} spacing={4}>
               <Card bg="whiteAlpha.50" border="1px solid" borderColor="whiteAlpha.100">
                 <CardBody py={4}>
                   <HStack spacing={3}>
@@ -281,6 +281,19 @@ const DashboardPage = () => {
                       <StatLabel color="gray.400">Hours Learned</StatLabel>
                       <StatNumber>
                         {roadmaps.reduce((acc, r) => acc + r.weeks.reduce((a, w) => a + w.topics.filter(t => t.isCompleted).reduce((h, t) => h + t.estimatedHours, 0), 0), 0).toFixed(0)}
+                      </StatNumber>
+                    </Stat>
+                  </HStack>
+                </CardBody>
+              </Card>
+              <Card bg="whiteAlpha.50" border="1px solid" borderColor="whiteAlpha.100">
+                <CardBody py={4}>
+                  <HStack spacing={3}>
+                    <Icon as={FaBookmark} boxSize={6} color="orange.400" />
+                    <Stat size="sm">
+                      <StatLabel color="gray.400">Bookmarked</StatLabel>
+                      <StatNumber>
+                        {roadmaps.reduce((acc, r) => acc + r.weeks.reduce((a, w) => a + w.topics.filter(t => t.isBookmarked).length, 0), 0)}
                       </StatNumber>
                     </Stat>
                   </HStack>
