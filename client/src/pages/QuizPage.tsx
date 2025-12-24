@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -24,8 +24,13 @@ import {
   Icon,
   useColorModeValue,
   useToast,
+  Kbd,
+  Tooltip,
+  CircularProgress,
+  CircularProgressLabel,
 } from '@chakra-ui/react';
-import { FaCheck, FaTimes, FaRedo, FaArrowLeft, FaTrophy } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaRedo, FaArrowLeft, FaTrophy, FaClock, FaLightbulb, FaStar } from 'react-icons/fa';
+import Confetti from '../components/Confetti';
 import { getQuiz, submitQuiz, resetQuiz } from '../services/quiz';
 import type { Quiz, QuizAnswer, QuizResult } from '../types';
 
@@ -40,10 +45,70 @@ const QuizPage = () => {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [results, setResults] = useState<QuizResult[] | null>(null);
   const [score, setScore] = useState<number | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   const cardBg = useColorModeValue('white', 'gray.800');
   const correctBg = useColorModeValue('green.50', 'green.900');
   const incorrectBg = useColorModeValue('red.50', 'red.900');
+
+  // Timer effect
+  useEffect(() => {
+    if (!loading && quiz && score === null) {
+      timerRef.current = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [loading, quiz, score]);
+
+  // Format time as MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (score !== null || !quiz) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const currentQ = quiz.questions[currentQuestionIndex];
+      if (!currentQ) return;
+
+      // Number keys 1-4 to select answer
+      if (['1', '2', '3', '4'].includes(e.key)) {
+        const optIndex = parseInt(e.key) - 1;
+        if (optIndex < currentQ.options.length) {
+          setAnswers(prev => ({
+            ...prev,
+            [currentQ.id]: optIndex,
+          }));
+        }
+      }
+
+      // Arrow keys to navigate questions
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        setCurrentQuestionIndex(prev => Math.min(prev + 1, quiz.questions.length - 1));
+      }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        setCurrentQuestionIndex(prev => Math.max(prev - 1, 0));
+      }
+
+      // Enter to submit when all answered
+      if (e.key === 'Enter' && Object.keys(answers).length === quiz.questions.length) {
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quiz, currentQuestionIndex, answers, score]);
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -123,6 +188,15 @@ const QuizPage = () => {
       const response = await submitQuiz(quiz.id, quizAnswers);
       setScore(response.score);
       setResults(response.results);
+
+      // Stop timer
+      if (timerRef.current) clearInterval(timerRef.current);
+
+      // Show confetti for passing score
+      if (response.score >= 70) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+      }
       
       toast({
         title: 'Quiz submitted!',
@@ -204,8 +278,21 @@ const QuizPage = () => {
   const totalQuestions = quiz.questions.length;
   const progress = (answeredCount / totalQuestions) * 100;
 
+  // Get motivational message based on score
+  const getScoreMessage = () => {
+    if (score === null) return '';
+    if (score === 100) return '🏆 Perfect score! You\'re a genius!';
+    if (score >= 90) return '🌟 Outstanding! Almost perfect!';
+    if (score >= 80) return '🎉 Great job! You really know your stuff!';
+    if (score >= 70) return '✨ Well done! You passed with flying colors!';
+    if (score >= 60) return '💪 Good effort! A bit more practice and you\'ll ace it!';
+    if (score >= 50) return '📚 Keep studying! You\'re on the right track!';
+    return '🔄 Don\'t give up! Review the material and try again!';
+  };
+
   return (
     <Container maxW="4xl" py={8}>
+      {showConfetti && <Confetti />}
       <VStack spacing={6} align="stretch">
         {/* Header */}
         <HStack justify="space-between" align="start">
@@ -219,7 +306,17 @@ const QuizPage = () => {
               Back to Roadmap
             </Button>
             <Heading size="lg">Quiz</Heading>
-            <Text color="gray.600">Test your knowledge for this week</Text>
+            <HStack spacing={4}>
+              <Text color="gray.600">Test your knowledge for this week</Text>
+              {score === null && (
+                <Badge colorScheme="purple" fontSize="sm" px={2} py={1}>
+                  <HStack spacing={1}>
+                    <Icon as={FaClock} />
+                    <Text>{formatTime(elapsedTime)}</Text>
+                  </HStack>
+                </Badge>
+              )}
+            </HStack>
           </VStack>
           
           {score !== null && (
@@ -265,6 +362,20 @@ const QuizPage = () => {
               borderRadius="full"
               size="sm"
             />
+            <HStack mt={3} spacing={4} justify="center" color="gray.500" fontSize="xs">
+              <HStack>
+                <Kbd>1</Kbd>-<Kbd>4</Kbd>
+                <Text>Select answer</Text>
+              </HStack>
+              <HStack>
+                <Kbd>↑</Kbd><Kbd>↓</Kbd>
+                <Text>Navigate</Text>
+              </HStack>
+              <HStack>
+                <Kbd>Enter</Kbd>
+                <Text>Submit</Text>
+              </HStack>
+            </HStack>
           </Box>
         )}
 
@@ -399,35 +510,72 @@ const QuizPage = () => {
 
         {/* Results summary */}
         {score !== null && results && (
-          <Card bg={cardBg}>
+          <Card 
+            bg={score >= 70 ? 'linear-gradient(135deg, rgba(72, 187, 120, 0.1) 0%, rgba(56, 178, 172, 0.1) 100%)' : cardBg}
+            border="2px solid"
+            borderColor={score >= 70 ? 'green.400' : 'gray.200'}
+          >
             <CardBody>
-              <VStack spacing={4}>
-                <Heading size="md">Quiz Complete!</Heading>
-                <HStack spacing={8}>
+              <VStack spacing={6}>
+                <Icon 
+                  as={score >= 70 ? FaTrophy : FaLightbulb} 
+                  boxSize={12} 
+                  color={score >= 70 ? 'yellow.400' : 'orange.400'}
+                />
+                <Heading size="lg">Quiz Complete!</Heading>
+                <Text fontSize="lg" color="gray.600" textAlign="center">
+                  {getScoreMessage()}
+                </Text>
+                
+                <HStack spacing={8} wrap="wrap" justify="center">
                   <VStack>
-                    <Text fontSize="4xl" fontWeight="bold" color="brand.500">
-                      {score}%
-                    </Text>
-                    <Text color="gray.600">Score</Text>
+                    <CircularProgress 
+                      value={score} 
+                      size="100px" 
+                      color={score >= 70 ? 'green.400' : score >= 50 ? 'yellow.400' : 'red.400'}
+                      trackColor="gray.200"
+                      thickness="8px"
+                    >
+                      <CircularProgressLabel fontWeight="bold" fontSize="xl">
+                        {score}%
+                      </CircularProgressLabel>
+                    </CircularProgress>
+                    <Text color="gray.600" fontWeight="medium">Score</Text>
                   </VStack>
                   <VStack>
-                    <Text fontSize="4xl" fontWeight="bold" color="green.500">
+                    <HStack spacing={1}>
+                      {[...Array(Math.min(5, results.filter(r => r.correct).length))].map((_, i) => (
+                        <Icon key={i} as={FaStar} color="yellow.400" boxSize={5} />
+                      ))}
+                    </HStack>
+                    <Text fontSize="3xl" fontWeight="bold" color="green.500">
                       {results.filter(r => r.correct).length}
                     </Text>
                     <Text color="gray.600">Correct</Text>
                   </VStack>
                   <VStack>
-                    <Text fontSize="4xl" fontWeight="bold" color="red.500">
+                    <Text fontSize="3xl" fontWeight="bold" color="red.500">
                       {results.filter(r => !r.correct).length}
                     </Text>
                     <Text color="gray.600">Incorrect</Text>
                   </VStack>
+                  <VStack>
+                    <HStack>
+                      <Icon as={FaClock} color="purple.400" />
+                      <Text fontSize="xl" fontWeight="bold" color="purple.500">
+                        {formatTime(elapsedTime)}
+                      </Text>
+                    </HStack>
+                    <Text color="gray.600">Time</Text>
+                  </VStack>
                 </HStack>
+                
                 <HStack spacing={4} pt={4}>
                   <Button
                     leftIcon={<FaRedo />}
                     onClick={handleReset}
                     variant="outline"
+                    size="lg"
                   >
                     Retake Quiz
                   </Button>
@@ -435,6 +583,7 @@ const QuizPage = () => {
                     leftIcon={<FaArrowLeft />}
                     colorScheme="brand"
                     onClick={() => navigate(-1)}
+                    size="lg"
                   >
                     Back to Roadmap
                   </Button>
