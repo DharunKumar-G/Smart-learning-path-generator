@@ -199,6 +199,48 @@ router.patch('/topic/:topicId/complete', authenticateToken, async (req: Request,
   }
 });
 
+// Update topic notes
+router.patch('/topic/:topicId/notes', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { topicId } = req.params;
+    const { notes } = req.body;
+
+    const topic = await prisma.topic.update({
+      where: { id: topicId },
+      data: { notes }
+    });
+
+    res.json({ 
+      message: 'Notes updated!',
+      topic 
+    });
+  } catch (error) {
+    console.error('Update notes error:', error);
+    res.status(500).json({ error: 'Failed to update notes' });
+  }
+});
+
+// Toggle topic bookmark
+router.patch('/topic/:topicId/bookmark', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { topicId } = req.params;
+    const { isBookmarked } = req.body;
+
+    const topic = await prisma.topic.update({
+      where: { id: topicId },
+      data: { isBookmarked }
+    });
+
+    res.json({ 
+      message: isBookmarked ? 'Topic bookmarked!' : 'Bookmark removed',
+      topic 
+    });
+  } catch (error) {
+    console.error('Update bookmark error:', error);
+    res.status(500).json({ error: 'Failed to update bookmark' });
+  }
+});
+
 // Delete a roadmap
 router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {

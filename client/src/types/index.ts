@@ -33,6 +33,8 @@ export interface Topic {
   searchStrings: string[];
   isCompleted: boolean;
   completedAt?: string;
+  notes?: string;
+  isBookmarked: boolean;
   weekId: string;
 }
 

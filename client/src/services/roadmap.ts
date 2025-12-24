@@ -35,6 +35,30 @@ export const toggleTopicComplete = async (
   return response.data;
 };
 
+// Update topic notes
+export const updateTopicNotes = async (
+  topicId: string, 
+  notes: string
+): Promise<{ message: string; topic: Topic }> => {
+  const response = await api.patch<{ message: string; topic: Topic }>(
+    `/roadmap/topic/${topicId}/notes`,
+    { notes }
+  );
+  return response.data;
+};
+
+// Toggle topic bookmark
+export const toggleTopicBookmark = async (
+  topicId: string, 
+  isBookmarked: boolean
+): Promise<{ message: string; topic: Topic }> => {
+  const response = await api.patch<{ message: string; topic: Topic }>(
+    `/roadmap/topic/${topicId}/bookmark`,
+    { isBookmarked }
+  );
+  return response.data;
+};
+
 // Delete a roadmap
 export const deleteRoadmap = async (id: string): Promise<{ message: string }> => {
   const response = await api.delete<{ message: string }>(`/roadmap/${id}`);

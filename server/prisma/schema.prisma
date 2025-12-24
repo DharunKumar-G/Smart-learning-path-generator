@@ -75,6 +75,10 @@ model Topic {
   isCompleted     Boolean @default(false)
   completedAt     DateTime?
   
+  // User additions
+  notes           String?   // Personal notes for the topic
+  isBookmarked    Boolean @default(false)  // Bookmark important topics
+  
   // Relations
   weekId String
   week   Week   @relation(fields: [weekId], references: [id], onDelete: Cascade)

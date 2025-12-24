@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -23,8 +23,10 @@ import {
   WrapItem,
   IconButton,
   Tooltip,
+  Textarea,
 } from '@chakra-ui/react';
-import { FaClock, FaSearch, FaYoutube, FaGoogle, FaCheckCircle, FaLightbulb, FaCopy } from 'react-icons/fa';
+import { FaClock, FaSearch, FaYoutube, FaGoogle, FaCheckCircle, FaLightbulb, FaCopy, FaBookmark, FaRegBookmark, FaStickyNote } from 'react-icons/fa';
+import { updateTopicNotes, toggleTopicBookmark } from '../services/roadmap';
 import type { Topic } from '../types';
 
 interface TopicDetailModalProps {
@@ -32,18 +34,73 @@ interface TopicDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onMarkComplete?: (topicId: string) => Promise<void>;
+  onUpdateTopic?: (topicId: string, updates: Partial<Topic>) => void;
 }
 
-const TopicDetailModal = ({ topic, isOpen, onClose, onMarkComplete }: TopicDetailModalProps) => {
+const TopicDetailModal = ({ topic, isOpen, onClose, onMarkComplete, onUpdateTopic }: TopicDetailModalProps) => {
   const bgColor = useColorModeValue('gray.50', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const toast = useToast();
+  
+  const [notes, setNotes] = useState(topic?.notes || '');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [isBookmarking, setIsBookmarking] = useState(false);
+
+  // Sync notes when topic changes
+  useEffect(() => {
+    setNotes(topic?.notes || '');
+  }, [topic]);
 
   const handleMarkComplete = useCallback(async () => {
     if (onMarkComplete && topic && !topic.isCompleted) {
       await onMarkComplete(topic.id);
     }
   }, [onMarkComplete, topic]);
+
+  const handleSaveNotes = useCallback(async () => {
+    if (!topic) return;
+    setIsSavingNotes(true);
+    try {
+      await updateTopicNotes(topic.id, notes);
+      onUpdateTopic?.(topic.id, { notes });
+      toast({
+        title: 'Notes saved!',
+        status: 'success',
+        duration: 2000,
+      });
+    } catch {
+      toast({
+        title: 'Failed to save notes',
+        status: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setIsSavingNotes(false);
+    }
+  }, [topic, notes, onUpdateTopic, toast]);
+
+  const handleToggleBookmark = useCallback(async () => {
+    if (!topic) return;
+    setIsBookmarking(true);
+    try {
+      const newBookmarked = !topic.isBookmarked;
+      await toggleTopicBookmark(topic.id, newBookmarked);
+      onUpdateTopic?.(topic.id, { isBookmarked: newBookmarked });
+      toast({
+        title: newBookmarked ? '⭐ Bookmarked!' : 'Bookmark removed',
+        status: 'success',
+        duration: 2000,
+      });
+    } catch {
+      toast({
+        title: 'Failed to update bookmark',
+        status: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setIsBookmarking(false);
+    }
+  }, [topic, onUpdateTopic, toast]);
 
   // Keyboard shortcut: Enter to mark complete
   const handleKeyDown = useCallback(
@@ -96,14 +153,33 @@ const TopicDetailModal = ({ topic, isOpen, onClose, onMarkComplete }: TopicDetai
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent>
         <ModalHeader>
-          <HStack spacing={3}>
-            <Text>{topic.name}</Text>
-            {topic.isCompleted && (
-              <Badge colorScheme="green" display="flex" alignItems="center" gap={1}>
-                <Icon as={FaCheckCircle} />
+          <HStack spacing={3} justify="space-between">
+            <HStack spacing={3}>
+              <Text>{topic.name}</Text>
+              {topic.isCompleted && (
+                <Badge colorScheme="green" display="flex" alignItems="center" gap={1}>
+                  <Icon as={FaCheckCircle} />
                 Completed
               </Badge>
             )}
+            {topic.isBookmarked && (
+              <Badge colorScheme="yellow" display="flex" alignItems="center" gap={1}>
+                <Icon as={FaBookmark} />
+                Bookmarked
+              </Badge>
+            )}
+            </HStack>
+            <Tooltip label={topic.isBookmarked ? 'Remove bookmark' : 'Bookmark topic'}>
+              <IconButton
+                aria-label="Bookmark"
+                icon={topic.isBookmarked ? <FaBookmark /> : <FaRegBookmark />}
+                onClick={handleToggleBookmark}
+                isLoading={isBookmarking}
+                colorScheme={topic.isBookmarked ? 'yellow' : 'gray'}
+                variant="ghost"
+                size="sm"
+              />
+            </Tooltip>
           </HStack>
         </ModalHeader>
         <ModalCloseButton />
@@ -220,6 +296,34 @@ const TopicDetailModal = ({ topic, isOpen, onClose, onMarkComplete }: TopicDetai
                   </Box>
                 ))}
               </VStack>
+            </Box>
+
+            {/* Personal Notes */}
+            <Box>
+              <HStack mb={2}>
+                <Icon as={FaStickyNote} color="yellow.500" />
+                <Text fontWeight="semibold">Personal Notes</Text>
+              </HStack>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add your personal notes, insights, or reminders about this topic..."
+                size="sm"
+                rows={4}
+                bg={bgColor}
+                borderColor={borderColor}
+              />
+              <Button
+                size="sm"
+                mt={2}
+                colorScheme="blue"
+                variant="outline"
+                onClick={handleSaveNotes}
+                isLoading={isSavingNotes}
+                isDisabled={notes === (topic.notes || '')}
+              >
+                Save Notes
+              </Button>
             </Box>
 
             {/* Completion toggle */}

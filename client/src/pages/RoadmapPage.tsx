@@ -44,7 +44,7 @@ import type { Topic } from '../types';
 const RoadmapPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentRoadmap, setCurrentRoadmap, updateTopicCompletion, isLoading, setLoading } = useRoadmapStore();
+  const { currentRoadmap, setCurrentRoadmap, updateTopicCompletion, updateTopic, isLoading, setLoading } = useRoadmapStore();
   const [updatingTopic, setUpdatingTopic] = useState<string | null>(null);
   const [generatingQuiz, setGeneratingQuiz] = useState<string | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
@@ -604,6 +604,7 @@ const RoadmapPage = () => {
         isOpen={isOpen}
         onClose={onClose}
         onMarkComplete={handleMarkTopicComplete}
+        onUpdateTopic={updateTopic}
       />
     </Box>
   );

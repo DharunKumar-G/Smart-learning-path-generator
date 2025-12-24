@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Roadmap } from '../types';
+import type { Roadmap, Topic } from '../types';
 
 interface RoadmapState {
   roadmaps: Roadmap[];
@@ -14,6 +14,7 @@ interface RoadmapState {
   addRoadmap: (roadmap: Roadmap) => void;
   removeRoadmap: (id: string) => void;
   updateTopicCompletion: (topicId: string, isCompleted: boolean) => void;
+  updateTopic: (topicId: string, updates: Partial<Topic>) => void;
   setLoading: (loading: boolean) => void;
   setGenerating: (generating: boolean) => void;
   setError: (error: string | null) => void;
@@ -55,6 +56,31 @@ export const useRoadmapStore = create<RoadmapState>((set, get) => ({
     const updatedRoadmap = { ...currentRoadmap, weeks: updatedWeeks };
     
     // Also update in roadmaps array
+    const updatedRoadmaps = roadmaps.map((r) =>
+      r.id === currentRoadmap.id ? updatedRoadmap : r
+    );
+    
+    set({
+      currentRoadmap: updatedRoadmap,
+      roadmaps: updatedRoadmaps,
+    });
+  },
+
+  updateTopic: (topicId, updates) => {
+    const { currentRoadmap, roadmaps } = get();
+    if (!currentRoadmap) return;
+    
+    const updatedWeeks = currentRoadmap.weeks.map((week) => ({
+      ...week,
+      topics: week.topics.map((topic) =>
+        topic.id === topicId
+          ? { ...topic, ...updates }
+          : topic
+      ),
+    }));
+    
+    const updatedRoadmap = { ...currentRoadmap, weeks: updatedWeeks };
+    
     const updatedRoadmaps = roadmaps.map((r) =>
       r.id === currentRoadmap.id ? updatedRoadmap : r
     );
