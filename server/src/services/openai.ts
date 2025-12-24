@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { researchLearningPath } from './perplexity.js';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -35,20 +36,38 @@ interface GeneratedRoadmap {
 }
 
 // Generate a personalized learning roadmap using AI
+// Step 1: Perplexity researches the learning path
+// Step 2: OpenAI organizes the research into a structured plan
 export async function generateRoadmap(input: RoadmapInput): Promise<GeneratedRoadmap> {
+  // First, use Perplexity to research the learning path
+  console.log('🔍 Researching learning path with Perplexity...');
+  let researchData = '';
+  try {
+    researchData = await researchLearningPath(input.currentSkills, input.targetGoal);
+    console.log('✅ Research completed, organizing with OpenAI...');
+  } catch (error) {
+    console.log('⚠️ Perplexity research failed, proceeding with OpenAI only...');
+  }
+
+  // Build the prompt with or without research data
+  const researchSection = researchData 
+    ? `\n\n**Research Data (from web search - use this to inform your roadmap):**\n${researchData}\n\n`
+    : '';
+
   const prompt = `You are an expert learning path designer. Create a detailed, personalized learning roadmap based on the following inputs:
 
 **Current Skills:** ${input.currentSkills}
 **Target Goal:** ${input.targetGoal}
 **Available Time:** ${input.hoursPerWeek} hours per week
 **Duration:** ${input.totalWeeks} weeks
-
+${researchSection}
 Generate a structured learning path that:
 1. Builds on existing knowledge progressively
 2. Prioritizes foundational concepts before advanced topics
 3. Includes practical projects and exercises
 4. Provides reasoning for topic ordering (prerequisites)
 5. Includes search strings for finding quality resources
+${researchData ? '6. Incorporates the researched resources and current best practices from the research data above' : ''}
 
 Return a JSON object with this exact structure:
 {
@@ -86,7 +105,7 @@ Return ONLY valid JSON, no additional text.`;
       messages: [
         {
           role: 'system',
-          content: 'You are a learning path expert. Always respond with valid JSON only, no markdown or additional text.'
+          content: 'You are a learning path expert. Always respond with valid JSON only, no markdown or additional text. Use the research data provided to create an up-to-date, relevant learning path.'
         },
         {
           role: 'user',
