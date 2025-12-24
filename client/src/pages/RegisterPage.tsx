@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -14,6 +14,8 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
+  Progress,
+  HStack,
 } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -31,6 +33,23 @@ const RegisterPage = () => {
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
   const toast = useToast();
+
+  // Password strength calculation
+  const passwordStrength = useMemo(() => {
+    if (!password) return { score: 0, label: '', color: 'gray' };
+    let score = 0;
+    if (password.length >= 6) score += 20;
+    if (password.length >= 8) score += 20;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 20;
+    if (/\d/.test(password)) score += 20;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score += 20;
+    
+    if (score <= 20) return { score, label: 'Weak', color: 'red' };
+    if (score <= 40) return { score, label: 'Fair', color: 'orange' };
+    if (score <= 60) return { score, label: 'Good', color: 'yellow' };
+    if (score <= 80) return { score, label: 'Strong', color: 'green' };
+    return { score, label: 'Very Strong', color: 'green' };
+  }, [password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +166,24 @@ const RegisterPage = () => {
                     />
                   </InputRightElement>
                 </InputGroup>
+                {password && (
+                  <Box mt={2}>
+                    <Progress
+                      value={passwordStrength.score}
+                      size="xs"
+                      colorScheme={passwordStrength.color}
+                      borderRadius="full"
+                    />
+                    <HStack justify="space-between" mt={1}>
+                      <Text fontSize="xs" color={`${passwordStrength.color}.400`}>
+                        {passwordStrength.label}
+                      </Text>
+                      <Text fontSize="xs" color="gray.500">
+                        {password.length < 6 ? `${6 - password.length} more chars needed` : '✓ Min length met'}
+                      </Text>
+                    </HStack>
+                  </Box>
+                )}
               </FormControl>
 
               <FormControl isRequired>

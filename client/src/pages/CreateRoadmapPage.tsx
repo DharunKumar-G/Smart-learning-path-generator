@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -40,6 +40,29 @@ const CreateRoadmapPage = () => {
   const { isGenerating, setGenerating, addRoadmap } = useRoadmapStore();
   const navigate = useNavigate();
   const toast = useToast();
+
+  // Rotating loading messages
+  const loadingMessages = [
+    '🧠 Analyzing your current skills...',
+    '🎯 Understanding your learning goals...',
+    '📚 Researching optimal learning paths...',
+    '🔗 Mapping topic prerequisites...',
+    '⏱️ Calculating time estimates...',
+    '🔍 Finding the best resources...',
+    '✨ Polishing your personalized roadmap...',
+  ];
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+
+  useEffect(() => {
+    if (isGenerating) {
+      const interval = setInterval(() => {
+        setLoadingMessageIndex((prev) => (prev + 1) % loadingMessages.length);
+      }, 3000);
+      return () => clearInterval(interval);
+    } else {
+      setLoadingMessageIndex(0);
+    }
+  }, [isGenerating]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,22 +250,33 @@ const CreateRoadmapPage = () => {
               </Alert>
 
               {/* Submit Button */}
-              <VStack spacing={2}>
+              <VStack spacing={3}>
                 <Button
                   type="submit"
                   colorScheme="blue"
                   size="lg"
                   w="full"
                   isLoading={isGenerating}
-                  loadingText="AI is generating your roadmap..."
+                  loadingText="Generating..."
                   leftIcon={<FaRocket />}
                 >
                   Generate My Learning Path
                 </Button>
                 {isGenerating && (
-                  <Text fontSize="sm" color="gray.400" textAlign="center">
-                    ✨ This usually takes 15-30 seconds. Our AI is crafting your personalized path...
-                  </Text>
+                  <Box
+                    p={4}
+                    bg="whiteAlpha.50"
+                    borderRadius="lg"
+                    w="full"
+                    textAlign="center"
+                  >
+                    <Text fontSize="md" color="brand.300" fontWeight="medium">
+                      {loadingMessages[loadingMessageIndex]}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500" mt={2}>
+                      This usually takes 15-30 seconds
+                    </Text>
+                  </Box>
                 )}
               </VStack>
             </VStack>

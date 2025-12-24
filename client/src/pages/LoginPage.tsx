@@ -14,6 +14,9 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
+  Checkbox,
+  HStack,
+  Divider,
 } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -24,6 +27,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   const { setAuth } = useAuthStore();
@@ -114,6 +118,19 @@ const LoginPage = () => {
                 </InputGroup>
               </FormControl>
 
+              <HStack justify="space-between" w="full">
+                <Checkbox
+                  isChecked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  colorScheme="blue"
+                >
+                  <Text fontSize="sm" color="gray.400">Remember me</Text>
+                </Checkbox>
+                <Link color="brand.400" fontSize="sm" _hover={{ textDecoration: 'underline' }}>
+                  Forgot password?
+                </Link>
+              </HStack>
+
               <Button
                 type="submit"
                 colorScheme="blue"
@@ -124,6 +141,33 @@ const LoginPage = () => {
               >
                 Sign In
               </Button>
+
+              <HStack w="full">
+                <Divider borderColor="whiteAlpha.300" />
+                <Text fontSize="sm" color="gray.500" whiteSpace="nowrap">or continue with</Text>
+                <Divider borderColor="whiteAlpha.300" />
+              </HStack>
+
+              <HStack w="full" spacing={4}>
+                <Button
+                  variant="outline"
+                  w="full"
+                  borderColor="whiteAlpha.300"
+                  _hover={{ bg: 'whiteAlpha.100' }}
+                  isDisabled
+                >
+                  🔗 Google (Soon)
+                </Button>
+                <Button
+                  variant="outline"
+                  w="full"
+                  borderColor="whiteAlpha.300"
+                  _hover={{ bg: 'whiteAlpha.100' }}
+                  isDisabled
+                >
+                  🐙 GitHub (Soon)
+                </Button>
+              </HStack>
             </VStack>
           </Box>
 
